@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-03-15 08:52:10
+ * @LastEditTime: 2023-03-15 10:52:08
  * @FilePath: /tp6/app/data/controller/Transfer.php
  * @Description: a
  */
@@ -88,7 +88,8 @@ class Transfer
       $ah_admin = Db::connect('ah_admin')->table($next_tb_name);
       $new_data = [];
       foreach ($data as $i => $d) {
-        $new_data[$i] = $tb_relate($d);
+        $tmp = $tb_relate($d);
+        if (!is_null($tmp)) $new_data[$i] = $tmp;
       }
       $ah_admin->insertAll($new_data);
       $_ENV['count'] += count($data);
@@ -199,15 +200,15 @@ class Transfer
   }
   private function trans_TaskDoDetail()
   {
-    return;
     $Operator     = $this->flowData('OperatorOID',     'id', Db::connect('ah_data')->table('Operator')->select());
     $BranchOffice = $this->flowData('BranchOfficeOID', 'id', Db::connect('ah_data')->table('BranchOffice')->select());
     $this->transfer_core('TaskInfo', 'task_info', function ($d) use ($Operator, $BranchOffice) {
-      $client = Db::connect('ah_data')->table('ClientInfo')->field('id')->where('ClientInfoOID', $d['ClientInfoOID'])->find();
+      $c = Db::connect('ah_data')->table('ClientInfo')->field('id')->where('TaskInfoOID', $d['TaskInfoOID'])->whereTime(['PhoneDate', '>', '2021-1-1'])->find();
+      if (count($c) < 1) return null;
       return [
         'id'               => $d['id'],
         'operator_id'      => $Operator[$d['OperatorOID']] ?? 0,
-        'client_id'        => $client['id'] ?? 0,
+        'client_id'        => $c['id'] ?? 0,
         'branch_office_id' => $BranchOffice[$d['BranchOfficeOID']] ?? 0,
         'service_name'     => $d['ServiceContentName'],
         'service_time'     => $d['NeedServiceTime'],
@@ -217,7 +218,7 @@ class Transfer
         'task_status'      => $d['TaskStatus'],
         'del'              => 0
       ];
-    }, ['PhoneDate', '>', '2021-1-1']);
+    });
   }
   private function trans_Assign()
   {
