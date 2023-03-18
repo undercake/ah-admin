@@ -3,7 +3,7 @@
  * @Author: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
  * @Date: 2023-03-04 16:43:31
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-03-15 16:53:10
+ * @LastEditTime: 2023-03-18 11:15:16
  * @FilePath: /tp6/app/midas/controller/Common.php
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -39,13 +39,13 @@ class Common extends BaseController
     $this->action = Request::action(true);
     $logged = $this->is_logged_in();
     if (!$logged && !in_array($this->controller . '/' . $this->action, $this->do_not_need_login)) {
-      halt($this->err(['code' => -2, 'is_login' => false, 'msg' => '您尚未登录，请登录后再试！']));
+      die(json_encode(['code' => -2, 'is_login' => false, 'msg' => '您尚未登录，请登录后再试！']));
     }
   }
 
   protected function sys_log(String $log)
   {
-    Db::name('sys_log')->insert(['type' => 0, 'time' => time(), 'IP' => $this->ip, 'operator_id' => $this->session_get('id')]);
+    // Db::name('sys_log')->insert(['type' => 0, 'time' => time(), 'IP' => $this->ip, 'operator_id' => $this->session_get('id')]);
   }
 
   protected function session_get($key, $val = null)

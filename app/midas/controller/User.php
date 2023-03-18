@@ -2,7 +2,7 @@
 /*
  * @Author: undercake
  * @Date: 2023-03-04 16:38:59
- * @LastEditTime: 2023-03-16 09:46:19
+ * @LastEditTime: 2023-03-17 17:33:45
  * @FilePath: /tp6/app/midas/controller/User.php
  * @Description:
  */
@@ -26,7 +26,7 @@ class User extends Common
       return json(['status' => 'error', 'msg' => '验证码错误']);
     }
     $this->session_del('Session_captcha');
-    $sql = Db::name('operator')->where('user_name', $data['username']);
+    $sql = Db::name('operator')->where(['user_name' => $data['username'], 'deleted' => 0]);
     if (preg_match("/^1[3456789]\d{9}$/", $data['username'])) {
       $sql->whereOr('mobile', $data['username']);
     }
@@ -51,7 +51,9 @@ class User extends Common
 
   public function getUserSideMenu()
   {
-    return $this->succ(['rights' => $this->session_get('rights')]);
+    $rights_list = Db::name('group')->field('rights')->where('id', $this->session_get('group'))->find();
+    $rights = Db::name('rights')->where('id', 'IN', $rights_list['rights'])->order('sort', 'ASC')->select();
+    return $this->succ(['rights' => $rights]);
   }
 
   public function logout()

@@ -9,7 +9,10 @@
 
 namespace app\midas\controller;
 
-class Index
+use app\midas\controller\Common;
+
+
+class Index extends Common
 {
   public function index()
   {
