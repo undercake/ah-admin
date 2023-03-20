@@ -13,21 +13,14 @@ use app\midas\controller\Common;
 use think\facade\Db;
 use think\facade\Request;
 
-class Admin extends Common
+class Employee extends Common
 {
   public function list($page = 1)
   {
     $page = (int)$page;
     if ($page <= 0) $page = 1;
-    $grp = Db::name('groups')->field('name,id')->select();
     $sql = Db::name('operator')->field('id,full_name,user_group,user_name,mobile')->where('deleted', 0);
     $rs  = $sql->page($page, 10)->select()->toArray();
-    foreach ($grp as $v) {
-      $grp[$v['id']] = $v;
-    }
-    foreach ($rs as $key => $value) {
-      $rs[$key]['group_name'] = $grp[$value['user_group']]['name'];
-    }
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
   }
 

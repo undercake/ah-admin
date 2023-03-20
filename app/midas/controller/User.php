@@ -2,7 +2,7 @@
 /*
  * @Author: undercake
  * @Date: 2023-03-04 16:38:59
- * @LastEditTime: 2023-03-17 17:33:45
+ * @LastEditTime: 2023-03-20 11:39:43
  * @FilePath: /tp6/app/midas/controller/User.php
  * @Description:
  */
@@ -42,7 +42,7 @@ class User extends Common
     $this->session_set('group', $rs['user_group']);
     $this->session_set('mobile', $rs['mobile']);
 
-    $group  = Db::name('group')->where('id', $rs['user_group'])->find();
+    $group  = Db::name('groups')->where('id', $rs['user_group'])->find();
     $rights = Db::name('rights')->whereIn('id', $group['rights'])->select();
     $this->session_set('rights', $rights);
 
@@ -51,7 +51,7 @@ class User extends Common
 
   public function getUserSideMenu()
   {
-    $rights_list = Db::name('group')->field('rights')->where('id', $this->session_get('group'))->find();
+    $rights_list = Db::name('groups')->field('rights')->where('id', $this->session_get('group'))->find();
     $rights = Db::name('rights')->where('id', 'IN', $rights_list['rights'])->order('sort', 'ASC')->select();
     return $this->succ(['rights' => $rights]);
   }

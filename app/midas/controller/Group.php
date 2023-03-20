@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-18 16:59:50
+ * @LastEditTime: 2023-03-20 13:05:57
  * @FilePath: /tp6/app/midas/controller/Group.php
  * @Description: 
  */
@@ -19,59 +19,75 @@ class Group extends Common
   {
     $page = (int)$page;
     if ($page <= 0) $page = 1;
-    $grp = Db::name('group')->page($page, 10)->select();
-    $count = Db::name('group')->count();
+    $grp = Db::name('groups')->page($page, 10)->select();
+    $count = Db::name('groups')->count();
     return $this->succ(['grp' => $grp, 'current_page' => $page, 'count' => $count, 'count_per_page' => 10]);
   }
 
   public function all()
   {
-    $grp = Db::name('group')->select();
+    $grp = Db::name('groups')->select();
     return $this->succ(['grp' => $grp]);
-  }
-
-  public function rights()
-  {
-    $rs = Db::name('rights')->order('sort', 'ASC')->select();
-    return $this->succ(['data' => $rs]);
   }
 
   public function detail($id = 0)
   {
     $id = (int)$id;
     if ($id <= 0) return $this->err(['msg' => 'bad id', 'id' => $id]);
-    $rs = Db::name('group')->where('id', $id)->find();
+    $rs = Db::name('groups')->where('id', $id)->find();
     return count($rs) <= 0 ? $this->err(['msg' => '没有找到数据']) : $this->succ(['detail' => $rs]);
   }
 
   public function add()
   {
-    return;
-    $data = Request::put();
-    // $rs = Db::name('operator')->where()->find();
-    return $this->succ($data);
+    $data   = Request::put();
+    $name   = $data['name'];
+    $rights = $data['rights'];
+    $rs     = Db::name('groups')->insert(['name' => $name, 'rights' => $rights]);
+    return $this->succ(['rs' => $rs]);
   }
 
   public function alter()
   {
-    return;
-    $data       = Request::post();
-    $id         = $data['id'];
-    $full_name  = $data['full_name'];
-    $mobile     = $data['mobile'];
-    $user_group = $data['user_group'];
-    $user_name  = $data['user_name'];
-    $rs = Db::name('operator')->where('id', (int)$id)->update(['full_name' => $full_name, 'mobile' => $mobile, 'user_group' => $user_group, 'user_name' => $user_name]);
+    $data   = Request::post();
+    $id     = $data['id'];
+    $name   = $data['name'];
+    $rights = $data['rights'];
+    $rs     = Db::name('groups')->where('id', (int)$id)->update(['name' => $name, 'rights' => $rights]);
     return $this->succ(['rs' => $rs]);
   }
 
-  public function delete($id = 0)
+  public function delete($id)
   {
-    return;
     $id = (int)$id;
     if ($id <= 0) return $this->err(['msg' => 'bad id']);
-    // $rs = Db::name('operator')->where()->find();
-    $data = Request::delete();
-    return $this->succ($data);
+    $is = Request::isDelete();
+    if (!$is) return $this->err(['msg' => 'Bad request!']);
+    $rs = Db::name('groups')->where('id', $id)->update(['deleted' => time()]);
+    return $this->succ(['rs' => $rs]);
+  }
+
+  public function rights()
+  {
+    $rs = Db::name('rights')->select();
+    return $this->succ(['data' => $rs]);
+  }
+
+  public function rights_edit()
+  {
+    $rs = Db::name('rights')->select();
+    return $this->succ(['data' => $rs]);
+  }
+
+  public function rights_add()
+  {
+    $rs = Db::name('rights')->select();
+    return $this->succ(['data' => $rs]);
+  }
+
+  public function rights_del()
+  {
+    $rs = Db::name('rights')->select();
+    return $this->succ(['data' => $rs]);
   }
 }
