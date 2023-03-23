@@ -2,16 +2,18 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-20 13:05:57
+ * @LastEditTime: 2023-03-21 11:39:53
  * @FilePath: /tp6/app/midas/controller/Group.php
  * @Description: 
  */
 
 namespace app\midas\controller;
 
-use app\midas\controller\Common;
+use app\midas\common\Common;
 use think\facade\Db;
 use think\facade\Request;
+
+use app\midas\model\Group as Grp;
 
 class Group extends Common
 {
@@ -33,9 +35,9 @@ class Group extends Common
   public function detail($id = 0)
   {
     $id = (int)$id;
-    if ($id <= 0) return $this->err(['msg' => 'bad id', 'id' => $id]);
+    if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
     $rs = Db::name('groups')->where('id', $id)->find();
-    return count($rs) <= 0 ? $this->err(['msg' => '没有找到数据']) : $this->succ(['detail' => $rs]);
+    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
   }
 
   public function add()
@@ -43,6 +45,11 @@ class Group extends Common
     $data   = Request::put();
     $name   = $data['name'];
     $rights = $data['rights'];
+    // 验证数据
+    $grp = new Grp();
+    $rs = $grp->check($data);
+    if (!$rs) return $this->err(['message' => $grp->getError()]);
+
     $rs     = Db::name('groups')->insert(['name' => $name, 'rights' => $rights]);
     return $this->succ(['rs' => $rs]);
   }
@@ -53,18 +60,21 @@ class Group extends Common
     $id     = $data['id'];
     $name   = $data['name'];
     $rights = $data['rights'];
+    // 验证数据
+    $grp = new Grp();
+    $rs = $grp->check($data);
+    if (!$rs) return $this->err(['message' => $grp->getError()]);
+
     $rs     = Db::name('groups')->where('id', (int)$id)->update(['name' => $name, 'rights' => $rights]);
     return $this->succ(['rs' => $rs]);
   }
 
-  public function delete($id)
+  public function delete($id = 0)
   {
     $id = (int)$id;
-    if ($id <= 0) return $this->err(['msg' => 'bad id']);
-    $is = Request::isDelete();
-    if (!$is) return $this->err(['msg' => 'Bad request!']);
-    $rs = Db::name('groups')->where('id', $id)->update(['deleted' => time()]);
-    return $this->succ(['rs' => $rs]);
+    if ($id < 0) return $this->err(['message' => 'bad id']);
+    if (Request::isDelete()) return $this->succ(['rs' => Db::name('groups')->where('id', $id)->update(['deleted' => time()])]);
+    if (Request::isPost()) return $this->succ(['rs' => Db::name('groups')->whereIn('id', implode(',', Request::post(['ids'])))->update(['deleted' => time()])]);
   }
 
   public function rights()
@@ -73,21 +83,27 @@ class Group extends Common
     return $this->succ(['data' => $rs]);
   }
 
+  // 以下方法暂时不可用
   public function rights_edit()
   {
+    return;
     $rs = Db::name('rights')->select();
     return $this->succ(['data' => $rs]);
   }
 
   public function rights_add()
   {
+    return;
     $rs = Db::name('rights')->select();
     return $this->succ(['data' => $rs]);
   }
 
-  public function rights_del()
+  public function rights_del($id = 0)
   {
-    $rs = Db::name('rights')->select();
-    return $this->succ(['data' => $rs]);
+    return;
+    $id = (int)$id;
+    if ($id < 0) return $this->err(['message' => 'bad id']);
+    if (Request::isDelete()) return $this->succ(['rs' => Db::name('rights')->where('id', $id)->update(['deleted' => time()])]);
+    if (Request::isPost()) return $this->succ(['rs' => Db::name('rights')->whereIn('id', implode(',', Request::post(['ids'])))->update(['deleted' => time()])]);
   }
 }

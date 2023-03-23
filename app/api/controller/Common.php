@@ -2,9 +2,9 @@
 /*
  * @Author: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
  * @Date: 2023-03-04 16:43:31
- * @LastEditors: error: error: git config user.name & please set dead value or install git && error: git config user.email & please set dead value or install git & please set dead value or install git
- * @LastEditTime: 2023-03-04 16:43:32
- * @FilePath: /tp6/app/api/controller/common/Common.php
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2023-03-21 10:52:19
+ * @FilePath: /tp6/app/api/controller/Common.php
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 
@@ -34,7 +34,7 @@ class Common extends BaseController
     $this->action = Request::action(true);
     $logged = $this->is_logged_in();
     if (!$logged && !in_array($this->controller . '/' . $this->action, $this->do_not_need_login)) {
-      halt($this->err(['is_login' => false, 'msg' => '您尚未登录，请登录后再试！']));
+      halt($this->err(['is_login' => false, 'message' => '您尚未登录，请登录后再试！']));
     }
   }
 

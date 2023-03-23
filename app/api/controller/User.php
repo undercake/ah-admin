@@ -2,7 +2,7 @@
 /*
  * @Author: undercake
  * @Date: 2023-03-04 16:38:59
- * @LastEditTime: 2023-03-04 16:39:00
+ * @LastEditTime: 2023-03-21 10:52:34
  * @FilePath: /tp6/app/api/controller/User.php
  * @Description:
  */
@@ -22,7 +22,7 @@ class User extends Common
 
     if (!($this->session_get('Session_captcha', false) && $this->session_get('Session_captcha') != trim($data['captcha']))) {
       $this->session_del('Session_captcha');
-      return json(['status' => 'error', 'msg' => '验证码错误']);
+      return json(['status' => 'error', 'message' => '验证码错误']);
     }
     $this->session_del('Session_captcha');
     $sql = Db::name('admin')->where('username', $data['username']);
@@ -32,7 +32,7 @@ class User extends Common
     $rs = $sql->find();
 
     if (!(sha1($data['passwordMd5'] . $rs['salt']) == $rs['password']))
-      return $this->err(['msg' => '账号密码不正确']);
+      return $this->err(['message' => '账号密码不正确']);
 
     $this->session_set('is_login', true);
     $this->session_set('username', $rs['username']);
@@ -44,7 +44,7 @@ class User extends Common
     $rights = Db::name('rights')->whereIn('id', $group['rights'])->select();
     $this->session_set('rights', $rights);
 
-    return $this->succ(['msg' => '登录成功！', 'nickname' => $rs['nickname'], 'group' => $group['name'], 'rights' => $rights]);
+    return $this->succ(['message' => '登录成功！', 'nickname' => $rs['nickname'], 'group' => $group['name'], 'rights' => $rights]);
   }
 
   public function getUserSideMenu()
@@ -58,7 +58,7 @@ class User extends Common
     foreach ($array as $k) {
       $this->session_del($k);
     }
-    return $this->succ(['msg' => '已成功退出登录！']);
+    return $this->succ(['message' => '已成功退出登录！']);
   }
 
   public function logged()

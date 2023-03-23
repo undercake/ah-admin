@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-03-15 10:52:08
+ * @LastEditTime: 2023-03-21 15:49:44
  * @FilePath: /tp6/app/data/controller/Transfer.php
  * @Description: a
  */
@@ -14,6 +14,9 @@ use think\facade\Db;
 
 class Transfer
 {
+
+  private $source_table = 'ah_data';
+  private $target_table = 'ah_admin';
   public function all()
   {
     foreach (['clientInfo', 'operator', 'employee'] as $v) {
@@ -69,6 +72,10 @@ class Transfer
         return
           $this->trans_WaterMoney();
         break;
+      case 'ee':
+        return;
+          $this->trans_ee();
+        break;
 
       default:
         return json(['status' => 'error']);
@@ -79,13 +86,13 @@ class Transfer
   private function transfer_core(String $prev_tb_name, String $next_tb_name, $tb_relate, $where = [])
   {
 
-    $ah_data = Db::connect('ah_data')->table($prev_tb_name);
+    $ah_data = Db::connect($this->source_table)->table($prev_tb_name);
     if (count($where) > 1) {
       $ah_data = $ah_data->whereTime(...$where);
     }
     $_ENV['count'] = 0;
     $ah_data->chunk(100, function ($data) use ($next_tb_name, $tb_relate) {
-      $ah_admin = Db::connect('ah_admin')->table($next_tb_name);
+      $ah_admin = Db::connect($this->target_table)->table($next_tb_name);
       $new_data = [];
       foreach ($data as $i => $d) {
         $tmp = $tb_relate($d);
@@ -146,6 +153,24 @@ class Transfer
       ];
     });
   }
+  private function trans_ee()
+  {
+    $this->source_table = 'ahjz_ynshendu_co';
+    $this->transfer_core('waiter', 'employee', function ($d) {
+      if ($d['is_delete'] == 1) return null;
+      return [
+        'name'        => $d['nickname'] ?? '',
+        'phone'       => $d['tel'] ?? '',
+        'img'         => $img_url[1] ?? '',
+        'avatar'      => $avatar_url[1] ?? '',
+        'intro'       => $d['intro'] ?? '',
+        'pinyin'      => Pinyin::name($d['nickname'], 'none')->join(''),
+        'pym'         => Pinyin::abbr($d['nickname'], 'none')->join(''),
+        'address'     => ($d['province'] ?? '') . ($d['city'] ?? '') . ($d['area'] ?? '') . ($d['street'] ?? ''),
+        'create_time' => date('Y-m-d H:i:s', time())
+      ];
+    });
+  }
   private function transfer_license()
   {
     $this->transfer_core('License', 'license', function ($d) {
@@ -200,6 +225,7 @@ class Transfer
   }
   private function trans_TaskDoDetail()
   {
+    return;
     $Operator     = $this->flowData('OperatorOID',     'id', Db::connect('ah_data')->table('Operator')->select());
     $BranchOffice = $this->flowData('BranchOfficeOID', 'id', Db::connect('ah_data')->table('BranchOffice')->select());
     $this->transfer_core('TaskInfo', 'task_info', function ($d) use ($Operator, $BranchOffice) {
@@ -254,7 +280,6 @@ class Transfer
       ];
     }, ['ChargeDate', '>', '2021-1-1']);
   }
-
   private function transfer_triple()
   {
     $this->transfer_core('BranchOffice', 'branch_office', function ($d) {

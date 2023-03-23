@@ -2,16 +2,17 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-20 14:59:55
+ * @LastEditTime: 2023-03-22 13:10:36
  * @FilePath: /tp6/app/midas/controller/Admin.php
  * @Description: 
  */
 
 namespace app\midas\controller;
 
-use app\midas\controller\Common;
+use app\midas\common\Common;
 use think\facade\Db;
 use think\facade\Request;
+use app\midas\model\Admin as Am;
 
 class Admin extends Common
 {
@@ -42,13 +43,14 @@ class Admin extends Common
     $page = (int)$page;
     if ($page <= 0) $page = 1;
     $grp = Db::name('groups')->field('name,id')->select();
-    $sql = Db::name('operator')->field('id,full_name,user_group,user_name,mobile')->where('deleted', '>', 0);
+    $sql = Db::name('operator')->field('id,full_name,user_group,user_name,mobile,deleted')->where('deleted', '>', 0);
     $rs  = $sql->page($page, 10)->select()->toArray();
     foreach ($grp as $v) {
       $grp[$v['id']] = $v;
     }
     foreach ($rs as $key => $value) {
       $rs[$key]['group_name'] = $grp[$value['user_group']]['name'];
+      $rs[$key]['deleted'] = date('Y-m-d H:i:s', $rs[$key]['deleted']);
     }
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
   }
@@ -56,9 +58,9 @@ class Admin extends Common
   public function detail($id = 0)
   {
     $id = (int)$id;
-    if ($id <= 0) return $this->err(['msg' => 'bad id', 'id' => $id]);
+    if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
     $rs = Db::name('operator')->field('id,full_name,user_group,user_name,mobile')->where(['id' => $id, 'deleted' => 0])->find();
-    return count($rs) <= 0 ? $this->err(['msg' => '没有找到数据']) : $this->succ(['detail' => $rs]);
+    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
   }
 
   public function add()
@@ -69,7 +71,20 @@ class Admin extends Common
     $user_group = $data['user_group'];
     $user_name  = $data['user_name'];
     $email      = $data['email'];
-    $rs = Db::name('operator')->insert(['full_name' => $full_name, 'mobile' => $mobile, 'user_group' => $user_group, 'user_name' => $user_name, 'email' => $email]);
+    $rs         = '';
+
+    // 验证数据
+    $am = new Am();
+    $res = $am->check($data);
+    if (!$res) return $this->err(['message' => $am->getError()]);
+
+    try {
+      $rs = Db::name('operator')->insert(['full_name' => $full_name, 'mobile' => $mobile, 'user_group' => $user_group, 'user_name' => $user_name, 'email' => $email]);
+    } catch (\Throwable $th) {
+      $msg = $th->getMessage();
+      $pos = strpos('Duplicate', $msg) >= 0;
+      return $this->err(['message' => $pos ? '登录名与现有数据重复！' : '未知错误']);
+    }
     return $this->succ(['rs' => $rs]);
   }
 
@@ -82,6 +97,12 @@ class Admin extends Common
     $user_group = $data['user_group'];
     $user_name  = $data['user_name'];
     $email      = $data['email'];
+
+    // 验证数据
+    $am = new Am();
+    $res = $am->check($data);
+    if (!$res) return $this->err(['message' => $am->getError()]);
+
     $rs = Db::name('operator')->where('id', (int)$id)->update(['full_name' => $full_name, 'mobile' => $mobile, 'user_group' => $user_group, 'user_name' => $user_name, 'email' => $email]);
     return $this->succ(['rs' => $rs]);
   }
@@ -91,6 +112,7 @@ class Admin extends Common
     $data = Request::post();
     $id   = $data['id'];
     $pass = $data['pass'];
+    if (strlen($pass) !== 32) return $this->err(['message' => '密码格式不正确']);
     $salt = md5(str_shuffle($pass . time()));
     $rs   = Db::name('operator')->where('id', (int)$id)->update(['password' => sha1($pass . $salt), 'salt' => $salt]);
     return $this->succ(['rs' => $rs]);
@@ -99,33 +121,35 @@ class Admin extends Common
   public function delete($id = 0)
   {
     $id = (int)$id;
-    if ($id < 0) return $this->err(['msg' => 'bad id']);
-    $is = Request::isDelete();
-    if ($is) return $this->succ(['rs' => Db::name('operator')->where('id', $id)->update(['deleted' => time()])]);
+    if ($id < 0) return $this->err(['message' => 'bad id']);
+    if (Request::isDelete()) return $this->succ(['rs' => Db::name('operator')->where('id', $id)->update(['deleted' => time()])]);
     if (Request::isPost()) {
       $data = Request::post();
-
-      return $this->succ(['rs' => Db::name('operator')->whereIn('id', $data['ids'])->update(['deleted' => time()])]);
+      return $this->succ(['rs' => Db::name('operator')->whereIn('id', implode(',', $data['ids']))->update(['deleted' => time()])]);
     }
   }
 
   public function deep_del($id = 0)
   {
     $id = (int)$id;
-    if ($id < 0) return $this->err(['msg' => 'bad id']);
+    if ($id < 0) return $this->err(['message' => 'bad id']);
     $is = Request::isDelete();
     if ($is) return $this->succ(['rs' => Db::name('operator')->where('id', $id)->delete()]);
     if (Request::isPost()) {
       $data = Request::post();
-
-      return $this->succ(['rs' => Db::name('operator')->whereIn('id', $data['ids'])->update(['deleted' => time()])]);
+      return json($data);
+      return $this->succ(['rs' => Db::name('operator')->whereIn('id', implode(',', $data['ids']))->delete()]);
     }
   }
 
   public function rec($id = 0)
   {
     $id = (int)$id;
-    if ($id < 0) return $this->err(['msg' => 'bad id']);
-    return $this->succ(['rs' => Db::name('operator')->where('id', $id)->update(['deleted' => 0])]);
+    if ($id < 0) return $this->err(['message' => 'bad id']);
+    if ($id > 0) return $this->succ(['rs' => Db::name('operator')->where('id', $id)->update(['deleted' => 0]), 'method' => Request::isPost()]);
+    if (Request::isPost()) {
+      $data = Request::post();
+      return $this->succ(['rs' => Db::name('operator')->whereIn('id', implode(',', $data['ids']))->update(['deleted' => 0]), 'data' => [$data, implode(',', $data['ids'])]]);
+    }
   }
 }

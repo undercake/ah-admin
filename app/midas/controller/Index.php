@@ -9,7 +9,7 @@
 
 namespace app\midas\controller;
 
-use app\midas\controller\Common;
+use app\midas\common\Common;
 
 
 class Index extends Common
