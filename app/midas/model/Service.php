@@ -11,7 +11,7 @@ namespace app\midas\model;
 
 use think\Validate;
 
-class Employee extends Validate
+class Service extends Validate
 {
   /**
    * 定义验证规则

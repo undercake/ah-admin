@@ -2,9 +2,9 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-21 13:35:40
- * @FilePath: /tp6/app/midas/controller/Employee.php
- * @Description: 
+ * @LastEditTime: 2023-03-24 16:50:14
+ * @FilePath: /tp6/app/midas/controller/Services.php
+ * @Description: 服务编辑
  */
 
 namespace app\midas\controller;
@@ -13,15 +13,15 @@ use app\midas\common\Common;
 use think\facade\Db;
 use think\facade\Request;
 
-use app\midas\model\Employee as Emp;
+use app\midas\model\Service as Svs;
 
-class Employee extends Common
+class Services extends Common
 {
   public function list($page = 1)
   {
     $page = (int)$page;
     if ($page <= 0) $page = 1;
-    $sql = Db::name('employee')->where('deleted', 0);
+    $sql = Db::name('services')->where('deleted', 0);
     $rs  = $sql->page($page, 10)->select()->toArray();
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
   }
@@ -30,7 +30,7 @@ class Employee extends Common
   {
     $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
-    $rs = Db::name('employee')->where(['id' => $id, 'deleted' => 0])->find();
+    $rs = Db::name('services')->where(['id' => $id, 'deleted' => 0])->find();
     return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
   }
 
@@ -38,28 +38,35 @@ class Employee extends Common
   {
     $page = (int)$page;
     if ($page <= 0) $page = 1;
-    $sql = Db::name('employee')->where('deleted', '>', 0);
-    $rs  = $sql->page($page, 10)->select()->toArray();
+    $sql = Db::name('services')->where('deleted', '>', 0);
+    $rs  = $sql->page($page, 10)->select();
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
+  }
+
+  public function category()
+  {
+    return $this->succ(['data' => Db::name('service_category')->select()]);
   }
 
   public function add()
   {
+    return $this->err(['code' => -1, 'message' => 'test', 'data' => Request::post()]);
     $data       = Request::put();
     $full_name  = $data['full_name'];
     $mobile     = $data['mobile'];
     $user_name  = $data['user_name'];
     $email      = $data['email'];
 
-    $emp = new Emp;
+    $emp = new Svs;
     $rs = $emp->check($data);
     if (!$rs) return $this->err(['message' => $emp->getError()]);
-    $rs = Db::name('employee')->insert(['full_name' => $full_name, 'mobile' => $mobile, 'user_name' => $user_name, 'email' => $email]);
+    $rs = Db::name('services')->insert(['full_name' => $full_name, 'mobile' => $mobile, 'user_name' => $user_name, 'email' => $email]);
     return $this->succ(['rs' => $rs]);
   }
 
   public function alter()
   {
+    return $this->err(['code' => -1, 'message' => 'test', 'data' => Request::post()]);
     $data       = Request::post();
     $id         = $data['id'];
     $full_name  = $data['full_name'];
@@ -67,10 +74,10 @@ class Employee extends Common
     $user_name  = $data['user_name'];
     $email      = $data['email'];
 
-    $emp = new Emp;
+    $emp = new Svs;
     $rs = $emp->check($data);
     if (!$rs) return $this->err(['message' => $emp->getError()]);
-    $rs = Db::name('employee')->where('id', (int)$id)->update(['full_name' => $full_name, 'mobile' => $mobile, 'user_name' => $user_name, 'email' => $email]);
+    $rs = Db::name('services')->where('id', (int)$id)->update(['full_name' => $full_name, 'mobile' => $mobile, 'user_name' => $user_name, 'email' => $email]);
     return $this->succ(['rs' => $rs]);
   }
 
@@ -79,11 +86,11 @@ class Employee extends Common
     $id = (int)$id;
     if ($id < 0) return $this->err(['message' => 'bad id']);
     $is = Request::isDelete();
-    if ($is) return $this->succ(['rs' => Db::name('employee')->where('id', $id)->update(['deleted' => time()])]);
+    if ($is) return $this->succ(['rs' => Db::name('services')->where('id', $id)->update(['deleted' => time()])]);
     if (Request::isPost()) {
       $data = Request::post();
 
-      return $this->succ(['rs' => Db::name('employee')->whereIn('id', $data['ids'])->update(['deleted' => time()])]);
+      return $this->succ(['rs' => Db::name('services')->whereIn('id', $data['ids'])->update(['deleted' => time()])]);
     }
   }
 
@@ -92,11 +99,11 @@ class Employee extends Common
     $id = (int)$id;
     if ($id < 0) return $this->err(['message' => 'bad id']);
     $is = Request::isDelete();
-    if ($is) return $this->succ(['rs' => Db::name('employee')->where('id', $id)->delete()]);
+    if ($is) return $this->succ(['rs' => Db::name('services')->where('id', $id)->delete()]);
     if (Request::isPost()) {
       $data = Request::post();
 
-      return $this->succ(['rs' => Db::name('employee')->whereIn('id', $data['ids'])->update(['deleted' => time()])]);
+      return $this->succ(['rs' => Db::name('services')->whereIn('id', $data['ids'])->update(['deleted' => time()])]);
     }
   }
 
@@ -104,6 +111,6 @@ class Employee extends Common
   {
     $id = (int)$id;
     if ($id < 0) return $this->err(['message' => 'bad id']);
-    return $this->succ(['rs' => Db::name('employee')->where('id', $id)->update(['deleted' => 0])]);
+    return $this->succ(['rs' => Db::name('services')->where('id', $id)->update(['deleted' => 0])]);
   }
 }

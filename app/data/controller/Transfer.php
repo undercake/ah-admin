@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-03-21 15:49:44
+ * @LastEditTime: 2023-03-24 11:26:06
  * @FilePath: /tp6/app/data/controller/Transfer.php
  * @Description: a
  */
@@ -74,7 +74,19 @@ class Transfer
         break;
       case 'ee':
         return;
-          $this->trans_ee();
+        $this->trans_ee();
+        break;
+      case 'ser':
+        return
+          $this->trans_ser();
+        break;
+      case 'serg':
+        return
+          $this->trans_serg();
+        break;
+      case 'sero':
+        return;
+        $this->trans_sero();
         break;
 
       default:
@@ -150,24 +162,6 @@ class Transfer
         'user_group' => $d['SystemFlag'] == 0 ? 1 : 2,
         'user_name'  => Pinyin::abbr($d['FullName'], 'none')->join(''),
         'mobile'     => ''
-      ];
-    });
-  }
-  private function trans_ee()
-  {
-    $this->source_table = 'ahjz_ynshendu_co';
-    $this->transfer_core('waiter', 'employee', function ($d) {
-      if ($d['is_delete'] == 1) return null;
-      return [
-        'name'        => $d['nickname'] ?? '',
-        'phone'       => $d['tel'] ?? '',
-        'img'         => $img_url[1] ?? '',
-        'avatar'      => $avatar_url[1] ?? '',
-        'intro'       => $d['intro'] ?? '',
-        'pinyin'      => Pinyin::name($d['nickname'], 'none')->join(''),
-        'pym'         => Pinyin::abbr($d['nickname'], 'none')->join(''),
-        'address'     => ($d['province'] ?? '') . ($d['city'] ?? '') . ($d['area'] ?? '') . ($d['street'] ?? ''),
-        'create_time' => date('Y-m-d H:i:s', time())
       ];
     });
   }
@@ -296,6 +290,74 @@ class Transfer
     $this->transfer_core('ServiceContent', 'services', function ($d) {
       return [
         'name' => $d['ServiceContentName']
+      ];
+    });
+  }
+  private function trans_ee()
+  {
+    $this->source_table = 'ahjz_ynshendu_co';
+    $this->transfer_core('waiter', 'employee', function ($d) {
+      if ($d['is_delete'] == 1) return null;
+      return [
+        'name'        => $d['nickname'] ?? '',
+        'phone'       => $d['tel'] ?? '',
+        'img'         => $img_url[1] ?? '',
+        'avatar'      => $avatar_url[1] ?? '',
+        'intro'       => $d['intro'] ?? '',
+        'pinyin'      => Pinyin::name($d['nickname'], 'none')->join(''),
+        'pym'         => Pinyin::abbr($d['nickname'], 'none')->join(''),
+        'address'     => ($d['province'] ?? '') . ($d['city'] ?? '') . ($d['area'] ?? '') . ($d['street'] ?? ''),
+        'create_time' => date('Y-m-d H:i:s', time())
+      ];
+    });
+  }
+  private function trans_serg()
+  {
+    return;
+    $this->source_table = 'ahjz_ynshendu_co';
+    $this->transfer_core('housekee_sever_class', 'service_category', function ($d) {
+      if ($d['is_delete'] == 1) return null;
+      return [
+        'id'       => $d['id'],
+        'name'     => $d['name'] ?? '',
+        'sort'     => $d['sort'] ?? '',
+        'status'   => $d['state'] ?? ''
+      ];
+    });
+  }
+  private function trans_ser()
+  {
+    $this->source_table = 'ahjz_ynshendu_co';
+    $this->transfer_core('housekee_sever', 'services', function ($d) {
+      if ($d['is_delete'] == 1) return null;
+      return [
+        'id'       => $d['id'],
+        'name'     => $d['name'] ?? '',
+        'intro'    => $d['intro'] ?? '',
+        'avatar'   => str_replace('http://ahjz.ynshendu.com', '', $d['icon'] ?? ''),
+        'banner'   => is_null($d['banner']) ? '' : str_replace('http://ahjz.ynshendu.com', '', implode(',', json_decode($d['banner']))),
+        'details'  => $d['details'] ?? '',
+        'prompt'   => $d['prompt'] ?? '',
+        'sort'     => $d['sort'] ?? '',
+        'status'   => $d['state'] ?? '',
+        'class_id' => $d['class_id'] ?? ''
+      ];
+    });
+  }
+  private function trans_sero()
+  {
+    $this->source_table = 'ahjz_ynshendu_co';
+    $this->transfer_core('housekee_sever_spec', 'service_options', function ($d) {
+      // if ($d['is_delete'] == 1) return null;
+      return [
+        'id'          => $d['id'],
+        'name'        => $d['name'] ?? '',
+        'price'       => $d['price'] ?? '',
+        'image'       => explode('upload', $d['image'])[1] ?? '',
+        'price_intro' => $d['price_intro'] ?? '',
+        'service_id'  => $d['ser_id'] ?? '',
+        'min_unm'     => $d['min_unm'] ?? '',
+        'wai_num'     => $d['wai_num'] ?? ''
       ];
     });
   }
