@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-03-24 11:26:06
+ * @LastEditTime: 2023-03-25 09:00:39
  * @FilePath: /tp6/app/data/controller/Transfer.php
  * @Description: a
  */
@@ -77,8 +77,8 @@ class Transfer
         $this->trans_ee();
         break;
       case 'ser':
-        return
-          $this->trans_ser();
+        return;
+        $this->trans_ser();
         break;
       case 'serg':
         return
@@ -356,7 +356,7 @@ class Transfer
         'image'       => explode('upload', $d['image'])[1] ?? '',
         'price_intro' => $d['price_intro'] ?? '',
         'service_id'  => $d['ser_id'] ?? '',
-        'min_unm'     => $d['min_unm'] ?? '',
+        'min_num'     => $d['min_unm'] ?? '',
         'wai_num'     => $d['wai_num'] ?? ''
       ];
     });

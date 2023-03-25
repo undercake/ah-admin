@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-24 16:50:14
+ * @LastEditTime: 2023-03-25 10:51:35
  * @FilePath: /tp6/app/midas/controller/Services.php
  * @Description: 服务编辑
  */
@@ -48,14 +48,40 @@ class Services extends Common
     return $this->succ(['data' => Db::name('service_category')->select()]);
   }
 
+  public function options($id = 0)
+  {
+    $id = (int)$id;
+    if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
+    return $this->succ(['data' => Db::name('service_options')->where('service_id', $id)->select()]);
+  }
+
+  public function quick_edit()
+  {
+    $data   = Request::post();
+    $status = (int)$data['status'];
+    $rs     = Db::name('services');
+    if (isset($data['id'])) {
+      $id = (int)$data['id'];
+      $rs = $rs->where('id', $id);
+    } else if (isset($data['ids'])) {
+      $tmp = [];
+      foreach (explode(',', $data['ids']) as $k => $v) {
+        $tmp[$k] = (int)$v;
+      }
+      $rs = $rs->whereIn('id', implode(',', $tmp));
+    }
+    $rs = $rs->update(['status' => $status]);
+    return $this->succ(['rs' => $rs]);
+  }
+
   public function add()
   {
     return $this->err(['code' => -1, 'message' => 'test', 'data' => Request::post()]);
-    $data       = Request::put();
-    $full_name  = $data['full_name'];
-    $mobile     = $data['mobile'];
-    $user_name  = $data['user_name'];
-    $email      = $data['email'];
+    $data      = Request::put();
+    $full_name = $data['full_name'];
+    $mobile    = $data['mobile'];
+    $user_name = $data['user_name'];
+    $email     = $data['email'];
 
     $emp = new Svs;
     $rs = $emp->check($data);
