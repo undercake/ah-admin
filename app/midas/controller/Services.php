@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-25 10:51:35
+ * @LastEditTime: 2023-03-27 09:31:21
  * @FilePath: /tp6/app/midas/controller/Services.php
  * @Description: 服务编辑
  */
@@ -52,7 +52,28 @@ class Services extends Common
   {
     $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
-    return $this->succ(['data' => Db::name('service_options')->where('service_id', $id)->select()]);
+    return $this->succ(['data' => Db::name('service_options')->where([['service_id', '=', $id], ['deleted', '=', 0]])->select()]);
+  }
+  public function opt_del($id = 0)
+  {
+    $id = (int)$id;
+    if ($id <= 0 || !Request::isDelete()) return $this->err(['message' => 'bad request!']);
+    return $this->succ(['data' => Db::name('service_options')->where('id', $id)->delete()]);
+  }
+  public function opt_add()
+  {
+    $data = Request::put();
+    // 添加 id 为服务id  其余均为服务项目 ID
+    $id = (int)$data['id'];
+    if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
+    return $this->succ(['data' => Db::name('service_options')->insert()]);
+  }
+  public function opt_edit()
+  {
+    $data = Request::put();
+    $id = (int)$data['id'];
+    if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
+    return $this->succ(['data' => Db::name('service_options')->where([['service_id', '=', $id], ['deleted', '=', 0]])->select()]);
   }
 
   public function quick_edit()
