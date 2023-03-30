@@ -103,7 +103,11 @@ class Employee extends Common
   public function rec($id = 0)
   {
     $id = (int)$id;
-    if ($id < 0) return $this->err(['message' => 'bad id']);
-    return $this->succ(['rs' => Db::name('employee')->where('id', $id)->update(['deleted' => 0])]);
+    $data = Request::post();
+    if (isset($data['id']) || isset($data['ids'])) {
+      $db = Db::name('services');
+      $db = isset($data['id']) ? $db->where('id', $data['id']) : $db->whereIn('id', $data['ids']);
+    } else return $this->err(['message' => 'Bad Request']);
+    return $this->succ(['rs' => $db->update(['deleted' => 0])]);
   }
 }

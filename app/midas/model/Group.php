@@ -21,7 +21,7 @@ class Group extends Validate
    */
   protected $rule = [
     'name'   => 'require',
-    'rights' => 'require|array',
+    'rights' => 'require',
     'id'     => 'integer'
   ];
 
@@ -32,9 +32,8 @@ class Group extends Validate
    * @var array
    */
   protected $message = [
-    'name.require'   => '角色名必填！',
-    'rights.require' => '权限必选！',
-    'rights.array'   => '权限格式不正确！',
-    'id'             => 'id应为整数！',
+    'name'   => '角色名必填！',
+    'rights' => '权限必选！',
+    'id'     => 'id应为整数！',
   ];
 }

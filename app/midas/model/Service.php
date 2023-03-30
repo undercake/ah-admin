@@ -2,8 +2,8 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-22 11:21:30
- * @LastEditTime: 2023-03-22 14:32:41
- * @FilePath: /tp6/app/midas/model/Employee.php
+ * @LastEditTime: 2023-03-30 10:54:11
+ * @FilePath: /tp6/app/midas/model/Service.php
  * @Description: employee 验证类
  */
 
@@ -19,44 +19,50 @@ class Service extends Validate
    *
    * @var array
    */
-  // name,phone,address,intro,gender,id_code,pinyin,pym,birth_date,work_date,grade,id
-  protected $rule = [
-    'name'       => 'require|length:1,14',
-    'phone'      => 'mobile',
-    'address'    => 'length:3,300',
-    'intro'      => 'length:3,300',
-    'gender'     => 'in:0,1',
-    'id_code'    => 'idCard',
-    'pinyin'     => 'require|alpha',
-    'pym'        => 'require|alpha',
-    'birth_date' => 'dateFormat:y-m-d',
-    'work_date'  => 'dateFormat:y-m-d',
-    'grade'      => 'between:0,9',
-    'id'         => 'integer'
-  ];
+  protected $rule = [];
   /**
    * 定义错误信息
    * 格式：'字段名.规则名'=>'错误信息'
    *
    * @var array
    */
-  protected $message = [
-    'name.require'   => '姓名不能为空',
-    'name.length'    => '姓名长度不合理',
-    'phone'          => '手机号格式不对',
-    'address'        => '地址长度不应小于3个字符，且不应长于300字符',
-    'intro'          => '简介长度不应小于3个字符，且不应长于300字符',
-    'gender'         => '性别选项不正确',
-    'id_code'        => '身份证格式不正确',
-    'pinyin.require' => '拼音为必填',
-    'pinyin.alpha'   => '拼音为不能包含其他字符',
-    'pym.require'    => '拼音码必填',
-    'pym.alpha'      => '拼音码不能包含其他字符',
-    'birth_date'     => '出生日期格式不正确',
-    'work_date'      => '入职日期格式不正确',
-    'grade'          => '学历选项不正确',
-    'id'             => 'id应为数字'
-  ];
+  protected $message = [];
+
+  public function __construct($key = '')
+  {
+    switch ($key) {
+      case 'cat':
+        break;
+      case 'opt':
+        break;
+      default:
+        $this->rule = [
+          'id'         => 'integer',
+          'name'       => 'require|length:1,30',
+          'avatar'     => 'require',
+          'class_id'   => 'require|integer',
+          'details'    => 'require',
+          'intro'      => 'require|length:3,300',
+          'banner'     => 'array',
+          'prompt'     => 'length:1,300',
+          'status'     => 'in:0,1',
+        ];
+        $this->message = [
+          'name.require'     => '“服务名称”不能为空',
+          'name.length'      => '“服务名称”长度过长',
+          'id'               => 'id格式错误',
+          'avatar'           => '“封面”必须上传',
+          'class_id.require' => '“服务类目”必须选择',
+          'class_id.length'  => '“服务类目”格式不正确',
+          'intro.require'    => '“服务简介”必须填写',
+          'intro.length'     => '“服务简介”长度过长',
+          'banner'           => '“轮播图”格式不正确',
+          'details'          => '“详情”不能为空',
+          'prompt'           => '“温馨提示”长度过长'
+        ];
+        break;
+    }
+  }
   /**
    * 定义验证场景
    * 格式：'场景名'=>['规则1','规则2',...]

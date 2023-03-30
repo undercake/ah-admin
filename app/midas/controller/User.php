@@ -2,7 +2,7 @@
 /*
  * @Author: undercake
  * @Date: 2023-03-04 16:38:59
- * @LastEditTime: 2023-03-23 16:20:20
+ * @LastEditTime: 2023-03-30 16:12:37
  * @FilePath: /tp6/app/midas/controller/User.php
  * @Description: 登录类
  */
@@ -20,8 +20,9 @@ class User extends Common
     $data = Request::post();
 
     // 验证码
-    if (!password_verify(mb_strtolower(trim($data['captcha'], 'UTF-8')), $this->session_get('captcha')))
-      return $this->err(['message' => '验证码错误', 'c' => $this->session_get('captcha')]);
+    $cap = $this->session_get('captcha');
+    if ($cap && !password_verify(mb_strtolower(trim($data['captcha'], 'UTF-8')), $cap))
+      return $this->err(['message' => '验证码错误', 'c' => $this->session_get('captcha'), $cap]);
 
     $this->session_del('captcha');
     $sql = Db::name('operator')->where(['user_name' => $data['username'], 'deleted' => 0]);
@@ -54,7 +55,7 @@ class User extends Common
     $rights = Db::name('rights')->where('id', 'IN', $rights_list['rights'])->order('sort', 'ASC')->select();
     $r = [];
     foreach ($rights as $v) {
-      if ($v['type'] == 1) $r[] = $v['path'];
+      if (in_array($v['type'], [0, 1])) $r[] = $v['path'];
     }
     $this->session_set('rights', $r);
     return [$rights, $rights_list];
