@@ -17,6 +17,12 @@ class Transfer
 
   private $source_table = 'ah_data';
   private $target_table = 'ah_admin';
+
+  public function customer(int $id)
+  {
+    # code...
+  }
+
   public function all()
   {
     foreach (['clientInfo', 'operator', 'employee'] as $v) {
