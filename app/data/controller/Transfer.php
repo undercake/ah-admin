@@ -2,21 +2,21 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-03-25 09:00:39
- * @FilePath: /tp6/app/data/controller/Transfer.php
- * @Description: a
+ * @LastEditTime: 2023-04-02 17:47:13
+ * @FilePath: /ahadmin/app/data/controller/Transfer.php
+ * @Description: 转移数据
  */
 
 namespace app\data\controller;
 
-use Overtrue\Pinyin\Pinyin;
+use app\common\Pinyin;
 use think\facade\Db;
 
 class Transfer
 {
 
-  private $source_table = 'ah_data';
-  private $target_table = 'ah_admin';
+  private $source_db = 'ah_data';
+  private $target_db = 'ah_admin';
 
   public function customer(int $id)
   {
@@ -94,6 +94,10 @@ class Transfer
         return;
         $this->trans_sero();
         break;
+      case 'c2c':
+        return;
+        $this->client2customer();
+        break;
 
       default:
         return json(['status' => 'error']);
@@ -101,16 +105,106 @@ class Transfer
     }
   }
 
-  private function transfer_core(String $prev_tb_name, String $next_tb_name, $tb_relate, $where = [])
+  private function client2customer()
   {
+    $db = 'ah_admin';
+    $ah_data = Db::connect($db)->table('client_info')->order('last_modify', 'DESC');
+    $ah_data->chunk(1, function($data) use($db) {
+      $d = $data[0];
+      $id = $d['id'];
+      $mobile = explode(',', $d['mobile']);
+      $mobile_new = [];
 
-    $ah_data = Db::connect($this->source_table)->table($prev_tb_name);
+      $contract_code = Db::connect('ah_data')->table('ClientInfo')->where('id', $id)->field('ItemCode')->find()->toArray()['ItemCode'];
+      foreach ($mobile as $v) {
+        if (strlen($v) > 6)
+          $mobile_new[] = $v;
+      }
+      if (count($mobile_new) > 1) {
+
+        $cus = Db::connect($db)->name('customer');
+        $name = [$d['full_name']];
+        $whereMobile = [];
+        foreach ($mobile_new as $v) {
+          $whereMobile[] = ['mobile', 'LIKE', '%' . $name[0] . '%'];
+        }
+        $old_data = $cus->whereOr($whereMobile)->findOrEmpty();
+        if (!$old_data->isEmpty()) {
+          $id = $old_data['id'];
+          $name = array_merge($name, explode(';;', $old_data['name']));
+          $mobile_new;
+        }
+        $addr_sql = Db::connect($db)->name('customer_addr');
+          $cus->save([
+            'id'          => $id,
+            'name'        => implode(';;'.array_unique($name)),
+            'mobile'      => implode(',',$mobile_new),
+            'type'        => $d['type'],
+            'black'       => $d['black_flag'],
+            'pym'         => $d['pym'],
+            'pinyin'      => Pinyin::name($d['full_name'], 'none')->join(''),
+            'total_money' => $d['total_money'],
+            'total_count' => $d['total_count'],
+            'remark'      => $d['special_need'] . '；' . $d['f_region'],
+            'del'         => $d['del'],
+            'last_modify' => $d['last_modify']
+        // 'F1'                  , // => $d['F1'],
+          ]);
+        $this_addr_count = $addr_sql->where([
+          ['customer_id' , '=', $id],
+          ['address', 'LIKE', '%'.$d['address'].'%']
+          ])->count();
+        if ($this_addr_count == 0)
+          $addr_sql->insert([
+            'address' => $d['Address'],
+            'area' => $d['house_area'],
+            'customer_id' => $id
+          ]);
+          Db::connect($db)->table('customer_serv')->insert([
+            'start_time' => $d['begin_time'],
+            'create_time' => $d['create_time'],
+            'end_time' => $d['end_time'],
+            'contract_code' => $contract_code,
+            'remark' => $d['normal_service_time']
+          ]);
+      }
+      /*   customer
+      id	int(10)		UNSIGNED	否	无
+	2	name	varchar(70)	utf8mb4_bin		否	无
+	3	mobile	varchar(80)	utf8mb4_general_ci		否		英文,分开
+	4	black	tinyint(1)			否	0
+	5	pym	varchar(35)	utf8mb4_general_ci		否
+	6	pinyin	varchar(280)	utf8mb4_bin		否
+	7	del	tinyint(1)			否	0
+	8	create_time	datetime
+	9	last_modify	datetime
+	10	remark
+      addr
+  	id	address	customer_id	area
+
+    customer_serv
+	id 主键	int(10)		UNSIGNED	否	无		AUTO_INCREMEN
+	2	customer_id	int(10)		UNSIGNED	否	0
+	3	create_time	datetime
+	4	stat_time	datetime
+	5	end_time	datetime
+	6	type	tinyint(1)			否	0	7半月卡6月卡5季卡4年卡3包做2包周1钟点0暂无
+	7	deleted	bigint(12)			否	0
+	8	contract_id	int(10)		UNSIGNED	否	0
+	9	remark	v
+       */
+    });
+  }
+
+  private function transfer_core(String $prev_tb_name, String $next_tb_name, Callable $tb_relate, $where = [])
+  {
+    $ah_data = Db::connect($this->source_db)->table($prev_tb_name);
     if (count($where) > 1) {
       $ah_data = $ah_data->whereTime(...$where);
     }
     $_ENV['count'] = 0;
     $ah_data->chunk(100, function ($data) use ($next_tb_name, $tb_relate) {
-      $ah_admin = Db::connect($this->target_table)->table($next_tb_name);
+      $ah_admin = Db::connect($this->target_db)->table($next_tb_name);
       $new_data = [];
       foreach ($data as $i => $d) {
         $tmp = $tb_relate($d);
@@ -301,7 +395,7 @@ class Transfer
   }
   private function trans_ee()
   {
-    $this->source_table = 'ahjz_ynshendu_co';
+    $this->source_db = 'ahjz_ynshendu_co';
     $this->transfer_core('waiter', 'employee', function ($d) {
       if ($d['is_delete'] == 1) return null;
       return [
@@ -320,7 +414,7 @@ class Transfer
   private function trans_serg()
   {
     return;
-    $this->source_table = 'ahjz_ynshendu_co';
+    $this->source_db = 'ahjz_ynshendu_co';
     $this->transfer_core('housekee_sever_class', 'service_category', function ($d) {
       if ($d['is_delete'] == 1) return null;
       return [
@@ -333,7 +427,7 @@ class Transfer
   }
   private function trans_ser()
   {
-    $this->source_table = 'ahjz_ynshendu_co';
+    $this->source_db = 'ahjz_ynshendu_co';
     $this->transfer_core('housekee_sever', 'services', function ($d) {
       if ($d['is_delete'] == 1) return null;
       return [
@@ -352,7 +446,7 @@ class Transfer
   }
   private function trans_sero()
   {
-    $this->source_table = 'ahjz_ynshendu_co';
+    $this->source_db = 'ahjz_ynshendu_co';
     $this->transfer_core('housekee_sever_spec', 'service_options', function ($d) {
       // if ($d['is_delete'] == 1) return null;
       return [
