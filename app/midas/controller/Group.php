@@ -2,8 +2,8 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-21 11:39:53
- * @FilePath: /tp6/app/midas/controller/Group.php
+ * @LastEditTime: 2023-04-03 11:34:10
+ * @FilePath: /ahadmin/app/midas/controller/Group.php
  * @Description: 
  */
 
@@ -79,7 +79,7 @@ class Group extends Common
 
   public function rights()
   {
-    $rs = Db::name('rights')->select();
+    $rs = Db::name('rights')->where([['type', '<>', 4]])->select();
     return $this->succ(['data' => $rs]);
   }
 

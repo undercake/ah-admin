@@ -2,8 +2,8 @@
 /*
  * @Author: undercake
  * @Date: 2023-03-04 16:38:59
- * @LastEditTime: 2023-03-30 16:12:37
- * @FilePath: /tp6/app/midas/controller/User.php
+ * @LastEditTime: 2023-04-03 11:35:18
+ * @FilePath: /ahadmin/app/midas/controller/User.php
  * @Description: 登录类
  */
 
@@ -52,7 +52,10 @@ class User extends Common
   private function setRights()
   {
     $rights_list = Db::name('groups')->field('rights,name')->where('id', $this->session_get('group'))->find();
-    $rights = Db::name('rights')->where('id', 'IN', $rights_list['rights'])->order('sort', 'ASC')->select();
+    $rights = Db::name('rights')->where([
+      ['id', 'IN', $rights_list['rights']],
+      ['type', '<>', 4]
+      ])->order('sort', 'ASC')->select();
     $r = [];
     foreach ($rights as $v) {
       if (in_array($v['type'], [0, 1])) $r[] = $v['path'];

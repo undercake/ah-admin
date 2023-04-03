@@ -2,15 +2,16 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-04-02 17:47:13
+ * @LastEditTime: 2023-04-03 12:23:15
  * @FilePath: /ahadmin/app/data/controller/Transfer.php
  * @Description: 转移数据
  */
 
 namespace app\data\controller;
 
-use app\common\Pinyin;
+// use app\common\Pinyin;
 use think\facade\Db;
+use Overtrue\Pinyin\Pinyin;
 
 class Transfer
 {
@@ -95,8 +96,8 @@ class Transfer
         $this->trans_sero();
         break;
       case 'c2c':
-        return;
-        $this->client2customer();
+        return
+          $this->c2cHandler();
         break;
 
       default:
@@ -104,70 +105,109 @@ class Transfer
         break;
     }
   }
+  /*
+TRUNCATE TABLE `customer`;
+TRUNCATE TABLE `customer_serv`;
+TRUNCATE TABLE `customer_addr`;
+UPDATE `client_info` SET `transfered`=0 WHERE 1;
+*/
+
+  private function c2cHandler()
+  {
+    ini_set('memory_limit', '5G');
+    set_time_limit(0);
+
+    try {
+      return $this->client2customer();
+    } catch (\Throwable $th) {
+      return $th->getMessage() . ';<br> $_ENV:: ' . json_encode($_ENV);
+    }
+  }
 
   private function client2customer()
   {
-    $db = 'ah_admin';
-    $ah_data = Db::connect($db)->table('client_info')->order('last_modify', 'DESC');
-    $ah_data->chunk(1, function($data) use($db) {
-      $d = $data[0];
+    $db_name = 'ah_admin';
+    $ah_data = Db::connect($db_name)->table('client_info')->order('last_modify', 'DESC');
+    $_ENV['transfered'] = 0;
+    $_ENV['total'] = 0;
+    $cursor = $ah_data->cursor();
+    foreach ($cursor as $d) {
       $id = $d['id'];
-      $mobile = explode(',', $d['mobile']);
+      $phone = str_replace(['１','２','３','４','５','６','７','８','９','０'], ['1','2','3','4','5','6','7','8','9','0'], $d['phone']);
+      $mobile = explode(',', $phone);
       $mobile_new = [];
 
-      $contract_code = Db::connect('ah_data')->table('ClientInfo')->where('id', $id)->field('ItemCode')->find()->toArray()['ItemCode'];
+      $contract_code = Db::connect('ah_data')->table('ClientInfo')->where('id', $id)->field('ItemCode')->find()['ItemCode'];
       foreach ($mobile as $v) {
-        if (strlen($v) > 6)
+        if (strlen((int)$v) > 6)
           $mobile_new[] = $v;
       }
-      if (count($mobile_new) > 1) {
-
-        $cus = Db::connect($db)->name('customer');
+      if (count($mobile_new) > 0) {
+        $db = Db::connect($db_name);
+        $cus = $db->name('customer');
         $name = [$d['full_name']];
         $whereMobile = [];
         foreach ($mobile_new as $v) {
-          $whereMobile[] = ['mobile', 'LIKE', '%' . $name[0] . '%'];
+          $whereMobile[] = ['mobile', 'LIKE', '%' . $v . '%'];
         }
         $old_data = $cus->whereOr($whereMobile)->findOrEmpty();
-        if (!$old_data->isEmpty()) {
+        if (count($old_data) > 0) {
           $id = $old_data['id'];
           $name = array_merge($name, explode(';;', $old_data['name']));
-          $mobile_new;
+          $mobile_new = array_merge($mobile_new, explode(',', $old_data['mobile']));
         }
-        $addr_sql = Db::connect($db)->name('customer_addr');
-          $cus->save([
-            'id'          => $id,
-            'name'        => implode(';;'.array_unique($name)),
-            'mobile'      => implode(',',$mobile_new),
-            'type'        => $d['type'],
-            'black'       => $d['black_flag'],
-            'pym'         => $d['pym'],
-            'pinyin'      => Pinyin::name($d['full_name'], 'none')->join(''),
-            'total_money' => $d['total_money'],
-            'total_count' => $d['total_count'],
-            'remark'      => $d['special_need'] . '；' . $d['f_region'],
-            'del'         => $d['del'],
-            'last_modify' => $d['last_modify']
-        // 'F1'                  , // => $d['F1'],
-          ]);
+        $data_name = implode(';;', array_unique($name));
+        if (strlen($data_name) > 410) $data_name = mb_substr($data_name, 0, 410) . '...';
+        $data_new = [
+          'name'        => $data_name,
+          'mobile'      => implode(',', array_unique($mobile_new)),
+          'black'       => $d['black_flag'],
+          'pym'         => $d['pym'],
+          'pinyin'      => Pinyin::name($d['full_name'], 'none')->join(''),
+          'total_money' => $d['total_money'],
+          'total_count' => $d['total_count'],
+          'remark'      => $d['special_need'] . '；' . $d['f_region'],
+          'del'         => $d['del'],
+          'last_modify' => $d['last_modify']
+          // 'F1'                  , // => $d['F1'],
+        ];
+        $_ENV['id_equal'] = $id == $d['id'];
+        $_ENV['id'] = $id;
+        $_ENV['d_id'] = $d['id'];
+        $_ENV['last_data'] = $data_new;
+        $id == $d['id'] ? $cus->insert([...$data_new, 'id' => $id]) : $cus->where('id', $id)->update($data_new);
+
+        $addr_sql = $db->name('customer_addr');
         $this_addr_count = $addr_sql->where([
-          ['customer_id' , '=', $id],
-          ['address', 'LIKE', '%'.$d['address'].'%']
-          ])->count();
+          ['customer_id', '=', $id],
+          ['address', 'LIKE', '%' . $d['address'] . '%']
+        ])->count();
+        $data_addr = [
+          'address'     => $d['address'],
+          'area'        => $d['house_area'] > 65535 ? 65535 : ($d['house_area'] < 0 ? 0 : $d['house_area']),
+          'customer_id' => $id
+        ];
+        $_ENV['last_addr'] = $data_addr;
         if ($this_addr_count == 0)
-          $addr_sql->insert([
-            'address' => $d['Address'],
-            'area' => $d['house_area'],
-            'customer_id' => $id
-          ]);
-          Db::connect($db)->table('customer_serv')->insert([
-            'start_time' => $d['begin_time'],
-            'create_time' => $d['create_time'],
-            'end_time' => $d['end_time'],
-            'contract_code' => $contract_code,
-            'remark' => $d['normal_service_time']
-          ]);
+          $addr_sql->insert($data_addr);
+        $data_serv = [
+          'start_time'    => $d['begin_time'],
+          'create_time'   => $d['create_time'],
+          'end_time'      => $d['end_time'],
+          'contract_code' => $contract_code,
+          'type'          => $d['type'],
+          'remark'        => $d['normal_service_time'],
+          'customer_id'   => $id
+        ];
+        $_ENV['last_serv'] = $data_serv;
+        $db->table('customer_serv')->insert($data_serv);
+        $db->table('client_info')->where('id', $d['id'])->update(['transfered' => 1]);
+        $db->close();
+        $_ENV['transfered']++;
+        unset($data_new, $db, $cus, $name, $addr_sql, $this_addr_count, $old_data, $whereMobile);
       }
+      unset($mobile_new);
+      $_ENV['total']++;
       /*   customer
       id	int(10)		UNSIGNED	否	无
 	2	name	varchar(70)	utf8mb4_bin		否	无
@@ -193,10 +233,11 @@ class Transfer
 	8	contract_id	int(10)		UNSIGNED	否	0
 	9	remark	v
        */
-    });
+    };
+    return json_encode($_ENV);
   }
 
-  private function transfer_core(String $prev_tb_name, String $next_tb_name, Callable $tb_relate, $where = [])
+  private function transfer_core(String $prev_tb_name, String $next_tb_name, callable $tb_relate, $where = [])
   {
     $ah_data = Db::connect($this->source_db)->table($prev_tb_name);
     if (count($where) > 1) {
