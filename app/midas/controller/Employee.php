@@ -2,8 +2,8 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-21 13:35:40
- * @FilePath: /tp6/app/midas/controller/Employee.php
+ * @LastEditTime: 2023-04-04 16:34:11
+ * @FilePath: /ahadmin/app/midas/controller/Employee.php
  * @Description: 
  */
 
@@ -21,7 +21,7 @@ class Employee extends Common
   {
     $page = (int)$page;
     if ($page <= 0) $page = 1;
-    $sql = Db::name('employee')->where('deleted', 0);
+    $sql = Db::name('employee')->where('deleted', 0)->order('create_time', 'DESC');
     $rs  = $sql->page($page, 10)->select()->toArray();
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
   }
@@ -30,7 +30,7 @@ class Employee extends Common
   {
     $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
-    $rs = Db::name('employee')->where(['id' => $id, 'deleted' => 0])->find();
+    $rs = Db::name('employee')->where(['id' => $id, 'deleted' => 0])->findOrEmpty();
     return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
   }
 
@@ -39,7 +39,7 @@ class Employee extends Common
     $page = (int)$page;
     if ($page <= 0) $page = 1;
     $sql = Db::name('employee')->where('deleted', '>', 0);
-    $rs  = $sql->page($page, 10)->select()->toArray();
+    $rs  = $sql->page($page, 10)->select()->order('deleted', 'DESC')->toArray();
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
   }
 

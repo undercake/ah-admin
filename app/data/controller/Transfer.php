@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-04-03 12:23:15
+ * @LastEditTime: 2023-04-04 17:48:36
  * @FilePath: /ahadmin/app/data/controller/Transfer.php
  * @Description: 转移数据
  */
@@ -96,8 +96,12 @@ class Transfer
         $this->trans_sero();
         break;
       case 'c2c':
-        return
+        return;
           $this->c2cHandler();
+        break;
+      case 'eea':
+        return;
+          $this->trans_ee_again();
         break;
 
       default:
@@ -433,6 +437,43 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
         'name' => $d['ServiceContentName']
       ];
     });
+  }
+  private function trans_ee_again()
+  {
+    $sqlRaw = 'SELECT * FROM `Employee` WHERE `EmployeeOID` IN ( SELECT `EmployeeOID` FROM `TaskUserDetail` WHERE `TaskDoDetailOID` IN (SELECT `TaskDoDetailOID` FROM `TaskDoDetail` WHERE `ServiceTime1` BETWEEN \'2023-01-01 00:00:00\' AND \'2023-04-04 00:00:00\') ) GROUP BY `FullName` ORDER BY `CreateDate` ASC;';
+    $db_name = 'ah_data';
+    $ah_data = Db::connect($db_name)->query($sqlRaw);
+    $_ENV['transfered'] = 0;
+    $_ENV['total'] = 0;
+    $cursor = $ah_data->cursor();
+    foreach ($cursor as $d) {
+      $birth = trim(str_replace('.', '-', $d['Birthday']));
+      $work_date = trim(str_replace('.', '-', $d['Workday']));
+      [
+        'id'        => $d['id'],
+        'name'      => $d['FullName'],
+        'gender'    => $d['Sex'] == '男' ? 0 : 1,
+        'birth'     => $birth == '' ? '0000-00-00 00:00:00' : $birth,
+        'work_date' => $birth == '' ? '0000-00-00 00:00:00' : $work_date,
+        'id_code'   => $d['IDCode'],
+        'phone' => $d['Tel'] . ',' . $d['HomeTel'],
+        'deleted' => $d['DelFlag'],
+        'create_time' => $d['CreateDate'],
+        'address' => $d['Address'],
+        'grade' => $d['ItemLevel'],
+        'pym' => $d['pym'],
+        'workee' => $d['Department'],
+        'note' => $d['Comment'],
+        'pinyin' => Pinyin::name($d['FullName'], 'none')->join(''),
+      ];
+      /*
+  现
+	7	avatar
+	10	origin
+	15	intro
+	21	wx_id
+  */
+    }
   }
   private function trans_ee()
   {
