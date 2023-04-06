@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-04-04 17:48:36
+ * @LastEditTime: 2023-04-06 11:20:19
  * @FilePath: /ahadmin/app/data/controller/Transfer.php
  * @Description: 转移数据
  */
@@ -97,7 +97,7 @@ class Transfer
         break;
       case 'c2c':
         return;
-          $this->c2cHandler();
+        $this->c2cHandler();
         break;
       case 'eea':
         return;
@@ -137,7 +137,7 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
     $cursor = $ah_data->cursor();
     foreach ($cursor as $d) {
       $id = $d['id'];
-      $phone = str_replace(['１','２','３','４','５','６','７','８','９','０'], ['1','2','3','4','5','6','7','8','9','0'], $d['phone']);
+      $phone = str_replace(['１', '２', '３', '４', '５', '６', '７', '８', '９', '０'], ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], $d['phone']);
       $mobile = explode(',', $phone);
       $mobile_new = [];
 
@@ -440,40 +440,100 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
   }
   private function trans_ee_again()
   {
-    $sqlRaw = 'SELECT * FROM `Employee` WHERE `EmployeeOID` IN ( SELECT `EmployeeOID` FROM `TaskUserDetail` WHERE `TaskDoDetailOID` IN (SELECT `TaskDoDetailOID` FROM `TaskDoDetail` WHERE `ServiceTime1` BETWEEN \'2023-01-01 00:00:00\' AND \'2023-04-04 00:00:00\') ) GROUP BY `FullName` ORDER BY `CreateDate` ASC;';
-    $db_name = 'ah_data';
-    $ah_data = Db::connect($db_name)->query($sqlRaw);
-    $_ENV['transfered'] = 0;
+    ini_set('memory_limit', '5G');
+    $sqlRaw = 'SELECT * FROM `employee` WHERE `EmployeeOID` IN ( SELECT `EmployeeOID` FROM `task_user_detail` WHERE `TaskDoDetailOID` IN (SELECT `TaskDoDetailOID` FROM `task_do_detail` WHERE `ServiceTime1` BETWEEN \'2023-01-01 00:00:00\' AND \'2023-04-04 00:00:00\') ) GROUP BY `FullName` ORDER BY `CreateDate` ASC;';
     $_ENV['total'] = 0;
-    $cursor = $ah_data->cursor();
-    foreach ($cursor as $d) {
+
+    $data = Db::connect('ah_data')->query($sqlRaw);
+    // $sql = Db::connect('ah_data')
+    //   ->name('Employee')
+    //   ->where('EmployeeOID', 'IN', function ($query) {
+    //     $query->name('TaskUserDetail')->field('EmployeeOID')->where('TaskDoDetailOID', 'IN', function ($q) {
+    //       $q->name('TaskDoDetail')->field('TaskDoDetailOID')->where('ServiceTime1', 'IN', ['2023-01-01 00:00:00', '2023-04-04 00:00:00']);
+    //     });
+    //   })
+    //   ->group('FullName')
+    //   ->order('CreateDate', 'ASC');
+    // $_ENV['sql'] = $sql->buildSql();
+    // // ( SELECT * FROM `employee` WHERE `EmployeeOID` IN (SELECT `EmployeeOID` FROM `task_user_detail` WHERE `TaskDoDetailOID` IN (SELECT `TaskDoDetailOID` FROM `task_do_detail` WHERE `ServiceTime1` IN ('2023-01-01 00:00:00','2023-04-04 00:00:00'))) GROUP BY `FullName` ORDER BY `CreateDate` ASC )
+    // $data = $sql->select();
+    $shendu_data = Db::connect('ah_admin')->name('employee')->select()->toArray();
+    $ins_data = [];
+    $upd_data = [];
+    foreach ($data as $d) {
+      $match_data = [];
+      foreach ($shendu_data as $v) {
+        if ($v['name'] == $d['FullName']) $match_data = $v;
+      }
       $birth = trim(str_replace('.', '-', $d['Birthday']));
       $work_date = trim(str_replace('.', '-', $d['Workday']));
-      [
-        'id'        => $d['id'],
-        'name'      => $d['FullName'],
-        'gender'    => $d['Sex'] == '男' ? 0 : 1,
-        'birth'     => $birth == '' ? '0000-00-00 00:00:00' : $birth,
-        'work_date' => $birth == '' ? '0000-00-00 00:00:00' : $work_date,
-        'id_code'   => $d['IDCode'],
-        'phone' => $d['Tel'] . ',' . $d['HomeTel'],
-        'deleted' => $d['DelFlag'],
-        'create_time' => $d['CreateDate'],
-        'address' => $d['Address'],
-        'grade' => $d['ItemLevel'],
-        'pym' => $d['pym'],
-        'workee' => $d['Department'],
-        'note' => $d['Comment'],
-        'pinyin' => Pinyin::name($d['FullName'], 'none')->join(''),
-      ];
+
+      $phone = [];
+      if (trim($d['Tel']) !== '') $phone[] = $d['Tel'];
+      if (trim($d['HomeTel']) !== '') $phone[] = $d['HomeTel'];
+
+      $note = [];
+      if (trim($d['Comment']) !== '') $note[] = $d['Comment'];
+      if (trim($d['ItemLevel']) !== '') $note[] = $d['ItemLevel'];
+      if (trim($d['WarrantorTel']) !== '') $note[] = $d['WarrantorTel'];
+
+      $work_date = strlen($work_date) < 6? '0000-00-00': date('Y-m-d', strtotime($work_date));
+      // if (strlen($birth) < 6) $birth = ''; else $birth = date('Y-m-d', strtotime($birth));
+      $id_code = trim(str_replace(['１', '２', '３', '４', '５', '６', '７', '８', '９', '０'], ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], $d['IDCode'] ?? ''));
+      $id_birth = substr($id_code, 6, 8);
+      $birth = $id_birth === '' ? ($birth == '' || strlen($birth) < 6 ? '0000-00-00' : date('Y-m-d', strtotime($birth))) : date('Y-m-d', strtotime($id_birth));
+      if (count ($match_data) == 0) {
+        $ins_data[] = [
+          'id'          => $d['id'],
+          'name'        => $d['FullName'] ?? '',
+          'gender'      => $d['Sex'] == '男' ? 0 : 1,
+          'birth_date'  => $birth,
+          'work_date'   => $work_date,
+          'id_code'     => $id_code,
+          'phone'       => implode(',',($phone)),
+          'deleted'     => $d['DelFlag'] ?? '',
+          'create_time' => $d['CreateDate'] ?? '',
+          'address'     => $d['Address'] ?? '',
+          'grade'       => 0,
+          'pym'         => $d['pym'],
+          'workee'      => $d['Department'] ?? '',
+          'note'        => implode(';', $note),
+          'pinyin'      => Pinyin::name($d['FullName'], 'none')->join(''),
+        ];
+      } else {
+        $phone[] = $match_data['phone'];
+        $upd_data[] = [
+          'id'          => $match_data['id'],
+          'birth_date'  => $birth,
+          'work_date'   => $work_date,
+          'id_code'     => $id_code,
+          'phone'       => implode(',',array_unique($phone)),
+          'address'     => $d['Address'] ?? '',
+          'pym'         => $d['pym'],
+          'workee'      => $d['Department'] ?? '',
+          'note'        => implode(';', $note)
+        ];
+
+      }
+      $_ENV['total']++;
       /*
   现
-	7	avatar
-	10	origin
-	15	intro
-	21	wx_id
+  7	avatar
+  10	origin
+  15	intro
+  21	wx_id
   */
     }
+    $_ENV['count'] = count($data);
+    $_ENV['update'] = 0;
+    $ad = Db::connect('ah_admin')->name('employee');
+    foreach ($upd_data as $v) {
+      $ad->where('id', $v['id'])->update($v);
+      $_ENV['update']++;
+    }
+    $_ENV['rs'] = Db::connect('ah_admin')->name('employee')->insertAll($ins_data);
+
+    return json_encode($_ENV);
   }
   private function trans_ee()
   {

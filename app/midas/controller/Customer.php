@@ -2,9 +2,9 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-04-04 16:11:51
+ * @LastEditTime: 2023-04-06 16:35:40
  * @FilePath: /ahadmin/app/midas/controller/Customer.php
- * @Description: 
+ * @Description: 客户相关
  */
 
 namespace app\midas\controller;
@@ -32,6 +32,7 @@ class Customer extends Common
     $addr = Db::name('customer_addr')->where('customer_id', 'IN', implode(',', $addr_ids))->select();
     $serv = Db::name('customer_serv')->where([
       ['customer_id', 'IN', implode(',', $addr_ids)],
+      ['type', '<>', 0],
       ])->order('end_time', 'DESC')->select();
     $contr = [];
     foreach ($serv as $v) {

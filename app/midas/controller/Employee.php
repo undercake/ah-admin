@@ -2,9 +2,9 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-04-04 16:34:11
+ * @LastEditTime: 2023-04-06 15:58:26
  * @FilePath: /ahadmin/app/midas/controller/Employee.php
- * @Description: 
+ * @Description: 员工相关
  */
 
 namespace app\midas\controller;
@@ -17,13 +17,40 @@ use app\midas\model\Employee as Emp;
 
 class Employee extends Common
 {
-  public function list($page = 1)
+  private function listCore($page = 1, $where = [['deleted', '=', 0]], $order = ['create_time' => 'DESC'])
   {
     $page = (int)$page;
     if ($page <= 0) $page = 1;
-    $sql = Db::name('employee')->where('deleted', 0)->order('create_time', 'DESC');
+    $sql = Db::name('employee')->order($order);
+    if ($where[0] == 'or') {
+      unset($where[0]);
+      $sql = $sql->whereOr($where[1]);
+    } else
+      $sql = $sql->where($where);
     $rs  = $sql->page($page, 10)->select()->toArray();
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
+  }
+  public function list(int $page = 1)
+  {
+    return $this->listCore($page);
+  }
+
+  public function deleted(int $page = 1)
+  {
+    return  $this->listCore($page, [['deleted', '>', 0]], ['deleted' => 'DESC']);
+  }
+
+  public function search(int $page = 1)
+  {
+    $search = trim(Request::post()['search']);
+    if ($search == '') return $this->err(['message' => 'Bad Request!']);
+    $searchArr = [];
+    $searchArr[] = ['name', 'LIKE', '%' . $search . '%'];
+    if(preg_match('/([\x81-\xfe][\x40-\xfe])/' ,$search) === 0)
+      foreach (['pym', 'pinyin', 'phone'] as $v) {
+        $searchArr[] = [$v, 'LIKE', '%' . $search . '%'];
+    }
+    return $this->listCore($page, ['or', $searchArr], ['deleted' => 'DESC']);
   }
 
   public function detail($id = 0)
@@ -32,15 +59,6 @@ class Employee extends Common
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
     $rs = Db::name('employee')->where(['id' => $id, 'deleted' => 0])->findOrEmpty();
     return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
-  }
-
-  public function deleted($page = 1)
-  {
-    $page = (int)$page;
-    if ($page <= 0) $page = 1;
-    $sql = Db::name('employee')->where('deleted', '>', 0);
-    $rs  = $sql->page($page, 10)->select()->order('deleted', 'DESC')->toArray();
-    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
   }
 
   public function add()
