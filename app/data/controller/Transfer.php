@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-04-06 11:20:19
+ * @LastEditTime: 2023-04-07 08:35:42
  * @FilePath: /ahadmin/app/data/controller/Transfer.php
  * @Description: 转移数据
  */
@@ -96,7 +96,7 @@ class Transfer
         $this->trans_sero();
         break;
       case 'c2c':
-        return;
+        return
         $this->c2cHandler();
         break;
       case 'eea':
@@ -137,7 +137,7 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
     $cursor = $ah_data->cursor();
     foreach ($cursor as $d) {
       $id = $d['id'];
-      $phone = str_replace(['１', '２', '３', '４', '５', '６', '７', '８', '９', '０'], ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], $d['phone']);
+      $phone = str_replace(['１', '２', '３', '４', '５', '６', '７', '８', '９', '０', '.'], ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ''], $d['phone']);
       $mobile = explode(',', $phone);
       $mobile_new = [];
 
@@ -150,11 +150,7 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
         $db = Db::connect($db_name);
         $cus = $db->name('customer');
         $name = [$d['full_name']];
-        $whereMobile = [];
-        foreach ($mobile_new as $v) {
-          $whereMobile[] = ['mobile', 'LIKE', '%' . $v . '%'];
-        }
-        $old_data = $cus->whereOr($whereMobile)->findOrEmpty();
+        $old_data = $cus->where('mobile', 'LIKE', '%' . $phone . '%')->findOrEmpty();
         if (count($old_data) > 0) {
           $id = $old_data['id'];
           $name = array_merge($name, explode(';;', $old_data['name']));

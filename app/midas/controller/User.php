@@ -2,7 +2,7 @@
 /*
  * @Author: undercake
  * @Date: 2023-03-04 16:38:59
- * @LastEditTime: 2023-04-03 11:35:18
+ * @LastEditTime: 2023-04-08 15:05:46
  * @FilePath: /ahadmin/app/midas/controller/User.php
  * @Description: 登录类
  */
@@ -32,9 +32,8 @@ class User extends Common
     if (preg_match("/^[A-Za-z0-9\x80-\xff]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/", $data['username'])) {
       $sql->whereOr('email', $data['username']);
     }
-    $rs = $sql->find();
-
-    if (!(sha1($data['passwordMd5'] . $rs['salt']) == $rs['password']))
+    $rs = $sql->findOrEmpty();
+    if (empty($rs) || !(sha1($data['passwordMd5'] . $rs['salt']) == $rs['password']))
       return $this->err(['message' => '账号密码不正确']);
 
     $this->session_set('is_login', true);
