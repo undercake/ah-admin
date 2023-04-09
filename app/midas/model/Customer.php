@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-22 11:21:30
- * @LastEditTime: 2023-04-03 10:29:53
+ * @LastEditTime: 2023-04-09 16:21:17
  * @FilePath: /ahadmin/app/midas/model/Customer.php
  * @Description: employee 验证类
  */
@@ -19,44 +19,82 @@ class Customer extends Validate
    *
    * @var array
    */
-  // name,phone,address,intro,gender,id_code,pinyin,pym,birth_date,work_date,grade,id
-  protected $rule = [
-    'name'       => 'require|length:1,14',
-    'phone'      => 'mobile',
-    'address'    => 'length:3,300',
-    'intro'      => 'length:3,300',
-    'gender'     => 'in:0,1',
-    'id_code'    => 'idCard',
-    'pinyin'     => 'require|alpha',
-    'pym'        => 'require|alpha',
-    'birth_date' => 'dateFormat:y-m-d',
-    'work_date'  => 'dateFormat:y-m-d',
-    'grade'      => 'between:0,9',
-    'id'         => 'integer'
-  ];
+  protected $rule = [];
   /**
    * 定义错误信息
    * 格式：'字段名.规则名'=>'错误信息'
    *
    * @var array
    */
-  protected $message = [
-    'name.require'   => '姓名不能为空',
-    'name.length'    => '姓名长度不合理',
-    'phone'          => '手机号格式不对',
-    'address'        => '地址长度不应小于3个字符，且不应长于300字符',
-    'intro'          => '简介长度不应小于3个字符，且不应长于300字符',
-    'gender'         => '性别选项不正确',
-    'id_code'        => '身份证格式不正确',
-    'pinyin.require' => '拼音为必填',
-    'pinyin.alpha'   => '拼音为不能包含其他字符',
-    'pym.require'    => '拼音码必填',
-    'pym.alpha'      => '拼音码不能包含其他字符',
-    'birth_date'     => '出生日期格式不正确',
-    'work_date'      => '入职日期格式不正确',
-    'grade'          => '学历选项不正确',
-    'id'             => 'id应为数字'
-  ];
+  protected $message = [];
+  public function __construct(string $type = '')
+  {
+    switch ($type) {
+      case 'address':
+        $this->rule = [
+          'id'          => 'require|integer',
+          'address'     => 'require|length:1,400',
+          'area'        => 'float',
+          'customer_id' => 'require|integer'
+        ];
+        $this->message = [
+          'id.require'          => 'id 字段不能为空',
+          'id.integer'          => 'id 必须为整数',
+          'address.require'     => '地址不能为空',
+          'address.length'      => '地址字段过长',
+          'area'                => '面积只能为数字',
+          'customer_id.require' => 'customer_id 字段不能为空',
+          'customer_id.integer' => 'customer_id 必须为整数'
+        ];
+        break;
+
+      case 'contract':
+        $this->rule = [
+          'id'            => 'require|integer',
+          'contract_code' => 'length:0,30',
+          'customer_id'   => 'require|integer',
+          'remark'        => 'length:0,280',
+          'end_time'      => 'date',
+          'start_time'    => 'date'
+        ];
+        $this->message = [
+          'id.require'          => '合同id为必填',
+          'id.integer'          => 'id必须为整数',
+          'contract_code'       => '合同编号长度过长',
+          'start_time'          => '开始时间格式不正确',
+          'end_time'            => '到期时间格式不正确',
+          'customer_id.require' => 'customer_id 字段不能为空',
+          'customer_id.integer' => 'customer_id 必须为整数'
+        ];
+        break;
+        default:
+          $this->rule = [
+            'id'          => 'require|integer',
+            'name'        => 'require|chsDash',
+            'mobile'      => 'require',
+            'black'       => 'in:0,1',
+            'remark'      => 'length:0,280',
+            'pinyin'      => 'alphaNum',
+            'pym'         => 'alphaNum',
+            'total_money' => 'float',
+            'total_count' => 'integer',
+          ];
+          $this->message = [
+            'id.require'   => '用户id为必填',
+            'id.integer'   => 'id必须为整数',
+            'name.require' => '姓名不能为空',
+            'name.chsDash' => '姓名只能为汉字',
+            'mobile'       => '手机号必填',
+            'black'        => '是否拉黑字段格式不正确',
+            'remark'       => '备注长度过长',
+            'pinyin'       => '拼音必须为字母',
+            'pym'          => '拼音码必须为字母',
+            'total_money'  => '账户金额必须为数字',
+            'total_count'  => '剩余次数必须为整数',
+          ];
+    }
+    parent::__construct();
+  }
   /**
    * 定义验证场景
    * 格式：'场景名'=>['规则1','规则2',...]
