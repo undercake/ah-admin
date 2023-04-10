@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-04-09 17:12:14
+ * @LastEditTime: 2023-04-10 10:14:03
  * @FilePath: /ahadmin/app/midas/controller/Customer.php
  * @Description: 客户相关
  */
@@ -155,9 +155,33 @@ class Customer extends Common
     ];
 
     $new_data = ['customer_addr' => ['update' => [], 'insert' => []], 'customer_serv' => ['update' => [], 'insert' => []]];
+    $keys = [
+      'address' => [
+        'address',
+        'area',
+        'customer_id',
+        'id'
+      ],
+      'contract' => [
+        'contract_code',
+        'contract_path',
+        'create_time',
+        'customer_id',
+        'end_time',
+        'id',
+        'remark',
+        'start_time',
+        'type',
+      ],
+    ];;
     foreach ($data as $k => $v) {
       foreach ($v as $val) {
-        $new_data[$db_name[$k]][$val['id'] == 0 ? 'insert' : 'update'] = [...$val, 'customer_id' => $altId];
+        $value = [];
+        foreach ($keys[$k] as $key) {
+          if ($key == 'id' && $val[$key] != 0 || $key != 'id')
+            $value[$key] = $val[$key];
+        }
+        $new_data[$db_name[$k]][$val['id'] == 0 ? 'insert' : 'update'] = [...$value, 'customer_id' => $altId];
       }
     }
     $rtn = [

@@ -3,7 +3,7 @@
  * @Author: undercake
  * @Date: 2023-03-04 16:43:31
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-04-09 11:11:46
+ * @LastEditTime: 2023-04-10 15:43:11
  * @FilePath: /ahadmin/app/midas/common/Common.php
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -22,28 +22,45 @@ class Common extends BaseController
   protected $cookie_divider = '__midas__';
   protected $sess;
 
-  private $do_not_need_login = [
-    'user/login',
-    'user/logged',
-    'cap/get',
-  ];
-
   public function __construct()
   {
     $this->sess = new CommonSession($this->cookie_divider);
     $this->controller = Request::controller(true);
     $this->action = Request::action(true);
+    $this->ip = $_SERVER['HTTP_X_REAL_IP'];
     $logged = $this->is_logged_in();
     // 未登录
-    if (!$logged && !in_array($this->controller . '/' . $this->action, $this->do_not_need_login)) {
+    $do_not_need_login = [
+      'user/login',
+      'user/logged',
+      'cap/get',
+    ];
+    if (!$logged && !in_array($this->controller . '/' . $this->action, $do_not_need_login)) {
       die(json_encode(['code' => -2, 'is_login' => false, 'message' => '您尚未登录，请登录后再试！']));
     }
-    if (($logged && $this->controller !== 'user') && (1)) {
+    $rights = $this->session_get('rights');
+    $controllers_do_not_need_right = [
+      'my',
+      'user'
+    ];
+    if (
+      $logged &&
+      !in_array($this->controller, $controllers_do_not_need_right) &&
+      !in_array('/' . $this->controller . '/' . $this->action, $rights)
+    ) {
+      die(json_encode([
+        'code'       => -3,
+        'has_rights' => false,
+        'message'    => '您没有权限',
+        'path'       => $this->controller . '/' . $this->action,
+        'ip'         => $this->ip
+      ]));
     }
   }
 
-  protected function sys_log(String $log)
+  protected function sys_log(Int $type, String $log)
   {
+    //0登录 1退出 2新增 3删除 4修改 5彻底删除
   }
 
   private function has_rights()
