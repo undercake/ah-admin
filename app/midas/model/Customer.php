@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-22 11:21:30
- * @LastEditTime: 2023-04-09 16:21:17
+ * @LastEditTime: 2023-04-11 09:05:11
  * @FilePath: /ahadmin/app/midas/model/Customer.php
  * @Description: employee 验证类
  */
@@ -77,6 +77,7 @@ class Customer extends Validate
             'pinyin'      => 'alphaNum',
             'pym'         => 'alphaNum',
             'total_money' => 'float',
+            'type'        => 'between:0,2',
             'total_count' => 'integer',
           ];
           $this->message = [
@@ -89,6 +90,7 @@ class Customer extends Validate
             'remark'       => '备注长度过长',
             'pinyin'       => '拼音必须为字母',
             'pym'          => '拼音码必须为字母',
+            'type'         => '客户类型只能为0-2',
             'total_money'  => '账户金额必须为数字',
             'total_count'  => '剩余次数必须为整数',
           ];

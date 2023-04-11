@@ -2,7 +2,7 @@
 /*
  * @Author: undercake
  * @Date: 2023-03-04 16:38:59
- * @LastEditTime: 2023-04-08 15:05:46
+ * @LastEditTime: 2023-04-11 12:18:45
  * @FilePath: /ahadmin/app/midas/controller/User.php
  * @Description: 登录类
  */
@@ -66,6 +66,9 @@ class User extends Common
   public function getUserSideMenu()
   {
     $rights = $this->setRights()[0];
+    foreach ($rights as $k => $v) {
+      $rights[$k] = [...$v, 'children' => []];
+    }
     return $this->succ(['rights' => $rights]);
   }
 

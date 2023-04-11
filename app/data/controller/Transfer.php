@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-04-10 17:40:16
+ * @LastEditTime: 2023-04-11 08:38:29
  * @FilePath: /ahadmin/app/data/controller/Transfer.php
  * @Description: 转移数据
  */
@@ -128,23 +128,23 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
     }
   }
 
-  public function F1c2c()
-  {
-    $ah_data = Db::connect('ah_admin')->table('client_info')->where('F1', '>', '0')->cursor();
-    foreach ($ah_data as $v) {
-      $phone = explode(',', $v['phone']);
-      $where = [
-        ['name', 'LIKE', $v['full_name']]
-      ];
-      foreach ($phone as $p) {
-        if (trim($p) != '')
-          $where[] = ['mobile', 'LIKE', '%'.$p.'%'];
-      }
-      $count = Db::connect('ah_admin')->table('customer')->where($where)->count();
-      echo $count . ' ' . $v['id'] . '<br>';
-    }
-    // dump($ah_data);
-  }
+  // public function F1c2c()
+  // {
+  //   $ah_data = Db::connect('ah_admin')->table('client_info')->where('F1', '>', '0')->cursor();
+  //   foreach ($ah_data as $v) {
+  //     $phone = explode(',', $v['phone']);
+  //     $where = [
+  //       ['name', 'LIKE', $v['full_name']]
+  //     ];
+  //     foreach ($phone as $p) {
+  //       if (trim($p) != '')
+  //         $where[] = ['mobile', 'LIKE', '%'.$p.'%'];
+  //     }
+  //     $count = Db::connect('ah_admin')->table('customer')->where($where)->update(['type' => $v['F1']]);
+  //     echo $count . ' ' . $v['id'] . '<br>';
+  //   }
+  //   // dump($ah_data);
+  // }
 
   private function client2customer()
   {
@@ -187,7 +187,7 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
           'remark'      => $d['special_need'] . '；' . $d['f_region'],
           'del'         => $d['del'],
           'last_modify' => $d['last_modify'],
-          'type'          => $d['F1']
+          'type'        => $d['F1']
         ];
         $_ENV['id_equal'] = $id == $d['id'];
         $_ENV['id'] = $id;

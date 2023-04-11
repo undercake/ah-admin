@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-04-10 10:14:03
+ * @LastEditTime: 2023-04-11 09:03:11
  * @FilePath: /ahadmin/app/midas/controller/Customer.php
  * @Description: 客户相关
  */
@@ -127,7 +127,7 @@ class Customer extends Common
     $sideArr['address_del'] = $post['address_del'];
     $id = (int)$post['id'];
     $data = [];
-    foreach (['name', 'mobile', 'black', 'pym', 'pinyin', 'remark', 'total_money', 'total_count'] as $v) {
+    foreach (['name', 'mobile', 'black', 'pym', 'pinyin', 'remark', 'total_money', 'total_count', 'type'] as $v) {
       $data[$v] = $post[$v];
     }
     $db = Db::name('customer');
