@@ -2,8 +2,8 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-22 13:10:36
- * @FilePath: /tp6/app/midas/controller/Admin.php
+ * @LastEditTime: 2023-04-12 10:31:18
+ * @FilePath: /ahadmin/app/midas/controller/Admin.php
  * @Description: 
  */
 
@@ -137,7 +137,7 @@ class Admin extends Common
     if ($is) return $this->succ(['rs' => Db::name('operator')->where('id', $id)->delete()]);
     if (Request::isPost()) {
       $data = Request::post();
-      return json($data);
+      // return json($data);
       return $this->succ(['rs' => Db::name('operator')->whereIn('id', implode(',', $data['ids']))->delete()]);
     }
   }
