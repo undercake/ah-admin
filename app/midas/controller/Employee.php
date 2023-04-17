@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-04-06 15:58:26
+ * @LastEditTime: 2023-04-17 17:20:57
  * @FilePath: /ahadmin/app/midas/controller/Employee.php
  * @Description: 员工相关
  */
@@ -17,7 +17,7 @@ use app\midas\model\Employee as Emp;
 
 class Employee extends Common
 {
-  private function listCore($page = 1, $where = [['deleted', '=', 0]], $order = ['create_time' => 'DESC'])
+  private function listCore($page = 1, int $item = 10, $where = [['deleted', '=', 0]], $order = ['create_time' => 'DESC'])
   {
     $page = (int)$page;
     if ($page <= 0) $page = 1;
@@ -27,20 +27,20 @@ class Employee extends Common
       $sql = $sql->whereOr($where[1]);
     } else
       $sql = $sql->where($where);
-    $rs  = $sql->page($page, 10)->select()->toArray();
-    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
+    $rs  = $sql->page($page, $item)->select()->toArray();
+    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
   }
-  public function list(int $page = 1)
+  public function list(int $page = 1, int $item = 10)
   {
-    return $this->listCore($page);
+    return $this->listCore($page, $item);
   }
 
-  public function deleted(int $page = 1)
+  public function deleted(int $page = 1, int $item = 10)
   {
-    return  $this->listCore($page, [['deleted', '>', 0]], ['deleted' => 'DESC']);
+    return  $this->listCore($page, $item, [['deleted', '>', 0]], ['deleted' => 'DESC']);
   }
 
-  public function search(int $page = 1)
+  public function search(int $page = 1, int $item = 10)
   {
     $search = trim(Request::post()['search']);
     if ($search == '') return $this->err(['message' => 'Bad Request!']);
@@ -50,7 +50,7 @@ class Employee extends Common
       foreach (['pym', 'pinyin', 'phone'] as $v) {
         $searchArr[] = [$v, 'LIKE', '%' . $search . '%'];
     }
-    return $this->listCore($page, ['or', $searchArr], ['deleted' => 'DESC']);
+    return $this->listCore($page, $item, ['or', $searchArr], ['deleted' => 'DESC']);
   }
 
   public function detail($id = 0)

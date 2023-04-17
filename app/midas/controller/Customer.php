@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-04-11 09:03:11
+ * @LastEditTime: 2023-04-17 13:47:50
  * @FilePath: /ahadmin/app/midas/controller/Customer.php
  * @Description: 客户相关
  */
@@ -18,13 +18,14 @@ use app\midas\model\Customer as Cus;
 class Customer extends Common
 {
 
-  private function listCore(int $page, $where, $order = ['last_modify' => 'DESC', 'total_money' => 'DESC', 'total_count' => 'DESC'], callable $filter = null)
+  private function listCore(int $page, int $item = 10, $where, $order = ['last_modify' => 'DESC', 'id' => 'DESC', 'total_money' => 'DESC', 'total_count' => 'DESC'], callable $filter = null)
   {
     if ($page <= 0) $page = 1;
+    if ($item <= 2) $item = 10;
     $sql = Db::name('customer')
       ->order($order)
       ->where($where);
-    $rs  = $sql->page($page, 10)->select()->toArray();
+    $rs  = $sql->page($page, $item)->select()->toArray();
     $addr_ids = [];
     foreach ($rs as $v) {
       $addr_ids[] = $v['id'];
@@ -48,26 +49,40 @@ class Customer extends Common
     }
     if ($filter)
       [$rs, $addr, $contr] = $filter($rs, $addr, $contr);
-    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10, 'addr' => $addr, 'services' => $contr]);
-  }
-  public function list(int $page = 1)
-  {
-    return $this->listCore($page, [['del', '=', 0]], ['last_modify' => 'DESC', 'create_time' => 'DESC']);
+    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item, 'addr' => $addr, 'services' => $contr]);
   }
 
-  public function search(int $page = 1)
+  public function list(int $page = 1, int $item = 10)
+  {
+    return $this->listCore($page, $item, [['del', '=', 0]], ['last_modify' => 'DESC', 'create_time' => 'DESC']);
+  }
+
+  public function search(int $page = 1, int $type = -1,int $item = 10)
   {
     $data = Request::post();
+    $where = [];
+    if ($type > -1) {
+      $rs = Db::name('customer_serv')->where('type', $type)->field('customer_id')->order('end_time', 'DESC')->select()->toArray();
+      if (count ($rs) > 0 ) {
+        $ids = [];
+        foreach ($rs as $v) {
+          $ids[] = $v['customer_id'];
+        }
+        $where[] = ['id', 'IN', implode(',', $ids)];
+      }
+    }
     return $this->listCore(
       $page,
+      $item,
       [
+        ...$where,
         ['mobile', 'LIKE', '%' . $data['mobile'] . '%'],
         ['del', '=', 0]
       ]
     );
   }
 
-  public function near(int $page)
+  public function near(int $page, int $item = 10)
   {
     if ($page <= 0) $page = 1;
     $serv = Db::name('customer_serv')
@@ -79,7 +94,7 @@ class Customer extends Common
     foreach ($serv as $v) {
       $ids[] = $v['customer_id'];
     }
-    return $this->listCore($page, [['id', 'IN', implode(',', $ids)]], ['last_modify' => 'DESC'], function ($rs, $addr, $contr) {
+    return $this->listCore($page, $item, [['id', 'IN', implode(',', $ids)]], ['last_modify' => 'DESC'], function ($rs, $addr, $contr) {
       $tmp_c = $contr;
       foreach ($tmp_c as $k => $v) {
         foreach ($v as $key => $val) {
@@ -101,12 +116,13 @@ class Customer extends Common
     return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs, 'contract' => $contract, 'address' => $address]);
   }
 
-  public function deleted(int $page = 1)
+  public function deleted(int $page = 1, int $item = 10)
   {
     if ($page <= 0) $page = 1;
+    if ($item <= 2) $item = 10;
     $sql = Db::name('customer')->where('del', '>', 0);
-    $rs  = $sql->page($page, 10)->select()->toArray();
-    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
+    $rs  = $sql->page($page, $item)->select()->toArray();
+    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
   }
 
   private function insCore()

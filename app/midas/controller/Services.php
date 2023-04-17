@@ -2,8 +2,8 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-03-30 14:40:37
- * @FilePath: /tp6/app/midas/controller/Services.php
+ * @LastEditTime: 2023-04-15 14:52:10
+ * @FilePath: /ahadmin/app/midas/controller/Services.php
  * @Description: 服务编辑
  */
 
@@ -117,9 +117,8 @@ class Services extends Common
     }
   }
 
-  public function deep_del($id = 0)
+  public function deep_del(int $id = 0)
   {
-    $id = (int)$id;
     if ($id < 0) return $this->err(['message' => 'bad id']);
     $is = Request::isDelete();
     if ($is) return $this->succ(['rs' => Db::name('services')->where('id', $id)->delete()]);
@@ -171,9 +170,12 @@ class Services extends Common
     return $this->succ(['data' => Db::name('service_options')->where([['service_id', '=', $id], ['deleted', '=', 0]])->select()]);
   }
 
-  public function category()
+  public function category(int $page = 1)
   {
-    return $this->succ(['data' => Db::name('service_category')->select()]);
+    if ($page < 0) return $this->err(['message' => 'bad page']);
+    $sql = Db::name('service_category');
+    $data = $sql->page($page, 10)->select();
+    return $this->succ(['data' => $data, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
   }
 
   public function cat_detail($id)
