@@ -2,88 +2,197 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-04-17 13:47:50
+ * @LastEditTime: 2023-08-15 02:23:58
  * @FilePath: /ahadmin/app/midas/controller/Customer.php
  * @Description: 客户相关
  */
 
 namespace app\midas\controller;
 
-use app\midas\common\Common;
+use app\midas\common\CRUD;
 use think\facade\Db;
 use think\facade\Request;
 
 use app\midas\model\Customer as Cus;
 
-class Customer extends Common
+class Customer extends CRUD
 {
 
-  private function listCore(int $page, int $item = 10, $where, $order = ['last_modify' => 'DESC', 'id' => 'DESC', 'total_money' => 'DESC', 'total_count' => 'DESC'], callable $filter = null)
+  private function listCore($page, $item = 10, $where = [['DelFlag', '=', 0]], $order = ['CreateDate' => 'DESC'], $callback = null)
   {
-    if ($page <= 0) $page = 1;
-    if ($item <= 2) $item = 10;
-    $sql = Db::name('customer')
-      ->order($order)
-      ->where($where);
-    $rs  = $sql->page($page, $item)->select()->toArray();
-    $addr_ids = [];
-    foreach ($rs as $v) {
-      $addr_ids[] = $v['id'];
-    }
-    $addr = Db::name('customer_addr')->where('customer_id', 'IN', implode(',', $addr_ids))->select();
-    $serv = Db::name('customer_serv')->where([
-      ['customer_id', 'IN', implode(',', $addr_ids)],
-      ['type', '<>', 0],
-    ])->order('end_time', 'DESC')->select();
-    $contr = [];
-    foreach ($serv as $v) {
-      isset($contr[$v['customer_id']]) ? ($contr[$v['customer_id']][] = $v) : ($contr[$v['customer_id']] = [$v]);
-    }
-    foreach ($contr as $key => $value) {
-      if (count($value) > 1)
-        foreach ($value as $k => $v) {
-          if (strpos($v['end_time'], '2222') !== false || strpos($v['end_time'], '0000') !== false)
-            if (count($contr[$key]) > 1) unset($contr[$key][$k]);
-          $contr[$key] = [...$contr[$key]];
-        }
-    }
-    if ($filter)
-      [$rs, $addr, $contr] = $filter($rs, $addr, $contr);
-    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item, 'addr' => $addr, 'services' => $contr]);
+    return $this->Selection('ah_data' ,'ClientInfo', $page, $item, $where, $order, $callback);
   }
 
   public function list(int $page = 1, int $item = 10)
   {
-    return $this->listCore($page, $item, [['del', '=', 0]], ['last_modify' => 'DESC', 'create_time' => 'DESC']);
-  }
+    $contract_user = Db::connect('ah_data')
+            ->table('ClientInfo')
+            ->order(['EndDate' => 'ASC'])
+            ->where([
+                ['DelFlag', '=', 0],
+                ['EndDate', '>', date('Y-m-d H:i:s')],
+                ['EndDate', '<', '2100-01-01'],
+                ['UserType', '>', 1]
+              ])
+            // ->whereOr([
+            //   ['FullName', 'LIKE', '%幼儿园%'],
+            //   ['FullName', 'LIKE', '%学院%'],
+            //   ['FullName', 'LIKE', '%学校%'],
+            //   ['FullName', 'LIKE', '%小学%'],
+            //   ['FullName', 'LIKE', '%中学%'],
+            //   ['FullName', 'LIKE', '%大学%'],
+            // ])
+            ->field('Tel1,Tel2,Tel3')
+            // ->whereBetweenTime('CreateDate', '2021-01-01', date('Y-m-d', time()))
+            ->select()->toArray();
 
-  public function search(int $page = 1, int $type = -1,int $item = 10)
-  {
-    $data = Request::post();
-    $where = [];
-    if ($type > -1) {
-      $rs = Db::name('customer_serv')->where('type', $type)->field('customer_id')->order('end_time', 'DESC')->select()->toArray();
-      if (count ($rs) > 0 ) {
-        $ids = [];
-        foreach ($rs as $v) {
-          $ids[] = $v['customer_id'];
-        }
-        $where[] = ['id', 'IN', implode(',', $ids)];
-      }
+    $contract_phone = [];
+    foreach ($contract_user as $value) {
+      $contract_phone[] = $value['Tel1'];
+      $contract_phone[] = $value['Tel2'];
+      $contract_phone[] = $value['Tel3'];
     }
     return $this->listCore(
       $page,
       $item,
       [
-        ...$where,
-        ['mobile', 'LIKE', '%' . $data['mobile'] . '%'],
-        ['del', '=', 0]
-      ]
+        ['Tel1', 'IN', $contract_phone],
+        ['Tel2', 'IN', $contract_phone],
+        ['Tel3', 'IN', $contract_phone],
+      ],
+      ['Tel1' => 'ASC']
     );
   }
 
-  public function near(int $page, int $item = 10)
+  // 散户查询
+  public function other(int $page = 1, int $item = 10)
   {
+    // return $this->listCore(
+    //   $page,
+    //   $item,
+    //   [
+    //     ['DelFlag', '=', 0],
+    //     ['UserType', '<', 2]
+    //   ],
+    //   ['EndDate' => 'ASC']
+    // );
+
+    $contract_user = Db::connect('ah_data')
+            ->table('ClientInfo')
+            ->order(['CreateDate' => 'DESC'])
+            ->where([
+                ['DelFlag', '=', 0],
+                ['EndDate', '>', '2023-08-01'],
+                ['EndDate', '<', '2100-01-01'],
+                ['UserType', '>', 1]
+              ])
+            ->field('Tel1,Tel2,Tel3')
+            // ->whereBetweenTime('CreateDate', '2021-01-01', date('Y-m-d', time()))
+            ->select()->toArray();
+            // ->fetchSql(true)->select();
+            // var_dump($sql);
+    $contract_phone = [];
+    foreach ($contract_user as $value) {
+      $contract_phone[] = $value['Tel1'];
+      $contract_phone[] = $value['Tel2'];
+      $contract_phone[] = $value['Tel3'];
+    }
+    $sql = Db::connect('ah_data')
+            ->table('ClientInfo')
+            ->order(['CreateDate' => 'DESC'])
+            ->where([
+                ['DelFlag', '=', 0],
+                ['UserType', '<=', 1],
+                ['Tel1', 'NOT IN', $contract_phone],
+                ['Tel2', 'NOT IN', $contract_phone],
+                ['Tel3', 'NOT IN', $contract_phone],
+                ['Address', 'NOT LIKE', '%不知%'],
+                ['FullName', '<>', '员工'],
+                ['FullName', 'NOT LIKE', '%不知%'],
+                ['FullName', 'NOT LIKE', '%工作手机%'],
+                ['FullName', 'NOT LIKE', '%应聘员工%'],
+                ['FullName', 'NOT LIKE', '%说是员工%'],
+                ['FullName', 'NOT LIKE', '%王加珍 员工%'],
+                ['FullName', 'NOT LIKE', '%应聘保姆%'],
+                ['FullName', 'NOT LIKE', '%员工应聘%'],
+                ['FullName', 'NOT LIKE', '%张丽枝员工%'],
+                ['FullName', 'NOT LIKE', '%介绍员工%'],
+                ['FullName', 'NOT LIKE', '%公保%'],
+                ['FullName', 'NOT LIKE', '%姨妈做员工%'],
+                ['FullName', 'NOT LIKE', '%做饭员工%'],
+                ['FullName', 'NOT LIKE', '%应聘住家保姆%'],
+                ['FullName', 'NOT LIKE', '%张丽枝员工%'],
+                ['FullName', 'NOT LIKE', '%员工.不发%'],
+                ['FullName', 'NOT LIKE', '%员工不发短信%'],
+                ['FullName', 'NOT LIKE', '%李世琴 员工%'],
+                ['FullName', 'NOT LIKE', '%陈会琼员工%'],
+                ['FullName', 'NOT LIKE', '% 员工不发短信%'],
+                ['FullName', 'NOT LIKE', '%严秀芳员工%'],
+                ['FullName', 'NOT LIKE', '%陶顺芬.员工%'],
+                ['FullName', 'NOT LIKE', '%美团杨路管理人员%'],
+                ['FullName', 'NOT LIKE', '%员工医院陪护%'],
+                ['FullName', 'NOT LIKE', '%问半天员工%'],
+                ['FullName', 'NOT LIKE', '%李世琴 员工%'],
+                ['FullName', 'NOT LIKE', '%李东会（员工）%'],
+                ['FullName', 'NOT LIKE', '%邓如玲 员工%'],
+                ['FullName', 'NOT LIKE', '%毕惠仙%']
+              ])
+            ->whereBetweenTime('CreateDate', '2017-01-01', date('Y-m-d', time()))
+            ->page($page, $item);
+            // ->fetchSql(true)->select();
+            // var_dump($sql);
+    $rs = $sql->select()->toArray();
+
+        return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
+
+  }
+
+  public function search(int $page = 1, int $item = 10)
+  {
+    $searchStr = Request::post()['search'];
+    return $this->listCore(
+      $page,
+      $item,
+      [
+        'or',
+        // ['DelFlag', '=', 0],
+        // ['UserType', '<', 2],
+        [['FullName', 'LIKE', '%' . $searchStr . '%'],
+        ['Tel1', 'LIKE', '%' . $searchStr . '%'],
+        ['Tel2', 'LIKE', '%' . $searchStr . '%'],
+        ['Tel3', 'LIKE', '%' . $searchStr . '%'],
+        ['Address', 'LIKE', '%' . $searchStr . '%'],
+        ['pym', 'LIKE', '%' . $searchStr . '%'],]
+      ],
+      ['EndDate' => 'ASC']
+    );
+    // return json($data);
+
+    // $where = [];
+    // if ($type > -1) {
+    //   $rs = Db::name('customer_serv')->where('type', $type)->field('customer_id')->order('end_time', 'DESC')->select()->toArray();
+    //   if (count ($rs) > 0 ) {
+    //     $ids = [];
+    //     foreach ($rs as $v) {
+    //       $ids[] = $v['customer_id'];
+    //     }
+    //     $where[] = ['id', 'IN', implode(',', $ids)];
+    //   }
+    // }
+    // return $this->listCore(
+    //   $page,
+    //   $item,
+    //   [
+    //     ...$where,
+    //     ['mobile', 'LIKE', '%' . $data['mobile'] . '%'],
+    //     ['DelFlag', '=', 0]
+    //   ]
+    // );
+  }
+
+  public function past(int $page = 1, int $item = 10)
+  {
+    /*
     if ($page <= 0) $page = 1;
     $serv = Db::name('customer_serv')
       ->where('type', '<>', '0')
@@ -94,7 +203,7 @@ class Customer extends Common
     foreach ($serv as $v) {
       $ids[] = $v['customer_id'];
     }
-    return $this->listCore($page, $item, [['id', 'IN', implode(',', $ids)]], ['last_modify' => 'DESC'], function ($rs, $addr, $contr) {
+    return $this->listCore($page, $item, [['id', 'IN', implode(',', $ids)]], ['LastModiDate' => 'DESC'], function ($rs, $addr, $contr) {
       $tmp_c = $contr;
       foreach ($tmp_c as $k => $v) {
         foreach ($v as $key => $val) {
@@ -103,28 +212,91 @@ class Customer extends Common
         }
       }
       return [$rs, $addr, $tmp_c];
-    });
+    });*/
+
+  $contract_user = Db::connect('ah_data')
+          ->table('ClientInfo')
+          ->order(['CreateDate' => 'DESC'])
+          ->where([
+              ['DelFlag', '=', 0],
+              ['EndDate', '>', date('Y-m-d', time())],
+              ['EndDate', '<', '2100-01-01'],
+              ['UserType', '>', 1]
+            ])
+          ->field('Tel1,Tel2,Tel3')
+          ->whereBetweenTime('CreateDate', '2021-01-01', date('Y-m-d', time()))
+          ->select()->toArray();
+
+    $contract_phone = [];
+    foreach ($contract_user as $value) {
+      $contract_phone[] = $value['Tel1'];
+      $contract_phone[] = $value['Tel2'];
+      $contract_phone[] = $value['Tel3'];
+    }
+    return $this->listCore(
+      $page,
+      $item,
+      [
+        ['DelFlag', '=', 0],
+        ['EndDate', '<', date('Y-m-d H:i:s')],
+        ['EndDate', '>', '2021-01-01'],
+        ['Tel1', 'NOT IN', $contract_phone],
+        ['Tel2', 'NOT IN', $contract_phone],
+        ['Tel3', 'NOT IN', $contract_phone],
+        ['UserType', '>', 1]
+      ],
+      ['EndDate' => 'DESC']
+    );
   }
 
-  public function detail($id = 0)
+  public function detail(int $id = 0)
   {
-    $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
-    $rs = Db::name('customer')->where(['id' => $id, 'del' => 0])->find();
-    $contract = Db::name('customer_serv')->where('customer_id', $id)->select();
-    $address = Db::name('customer_addr')->where('customer_id', $id)->select();
-    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs, 'contract' => $contract, 'address' => $address]);
+    // $rs = Db::name('customer')->where(['id' => $id, 'del' => 0])->find();
+    // $contract = Db::name('customer_serv')->where('customer_id', $id)->select();
+    // $address = Db::name('customer_addr')->where('customer_id', $id)->select();
+    // return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs, 'contract' => $contract, 'address' => $address]);
+    $rs = Db::connect('ah_data')
+      ->table('ClientInfo')
+      ->where('id', $id)
+      ->find();
+    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['data' => $rs]);
+  }
+
+  public function history(int $page = 1, int $id = 0) {
+    // return $this->Selection(
+    //   'ah_data',
+    //   'ClientInfo',
+    //   $page,
+    //   $item,
+    //   ['ClientInfoOID', '=', function ($query) use ($id) {
+    //       $query->table('ClientInfo')->where('id', $id)->field('ClientInfoOID');
+    //   }],
+    //   ['NeedServiceTime' => 'DESC']
+    // );
+    $sql = Db::connect('ah_data')
+      ->table('TaskInfo')
+      ->where([['ClientInfoOID', '=', function ($query) use ($id) {
+          $query->table('ClientInfo')->where('id', $id)->field('ClientInfoOID');
+      }],
+      ['TaskStatus', '<>', '201']])
+      ->order(['NeedServiceTime' => 'DESC']);
+      $rs = $sql->page($page, 20)
+      ->select();
+
+      return $this->succ(['data' => $rs, 'current_page' => $page,'total' => $sql->count(), 'count' => $rs->count(), 'count_per_page' => 20]);
   }
 
   public function deleted(int $page = 1, int $item = 10)
   {
     if ($page <= 0) $page = 1;
     if ($item <= 2) $item = 10;
+    return $this->listCore($page, $item, [['DelFlag', '>', 0]], ['LastModiDate' => 'DESC', 'CreateDate' => 'DESC']);
     $sql = Db::name('customer')->where('del', '>', 0);
     $rs  = $sql->page($page, $item)->select()->toArray();
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
   }
-
+// 贾培培
   private function insCore()
   {
     $is_post = Request::isPost();
@@ -181,7 +353,7 @@ class Customer extends Common
       'contract' => [
         'contract_code',
         'contract_path',
-        'create_time',
+        'CreateDate',
         'customer_id',
         'end_time',
         'id',

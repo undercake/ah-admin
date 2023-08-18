@@ -2,8 +2,8 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-23 15:19:56
- * @LastEditTime: 2023-03-23 16:00:15
- * @FilePath: /tp6/app/common/Session.php
+ * @LastEditTime: 2023-07-31 07:37:25
+ * @FilePath: /ahadmin/app/common/Session.php
  * @Description: session类
  */
 
@@ -29,20 +29,20 @@ class Session
     $this->expire  = $config['expire'];
 
     // Db::name('session')->save(['cookie' => $this->cookie . '__' . $this->divider, 'expire' => time() + $this->expire]);
-    $data = Db::name('session')->where([['cookie', '=', $this->cookie . '__' . $this->divider], ['expire', '>', time()]])->find();
+    $data = Db::connect('ah')->table('session')->where([['cookie', '=', $this->cookie . '__' . $this->divider], ['expire', '>', time()]])->find();
     $this->tmpData = isset($data['value']) ? json_decode($data['value'], true) : [];
   }
 
   public function __destruct()
   {
-    $db = Db::name('session');
-    if (count($this->tmpData) == 0) $rs = $db->where(['cookie' => $this->cookie . '__' . $this->divider])->delete();
+    $db = Db::connect('ah')->table('session');
+    if (count($this->tmpData) == 0) $db->where(['cookie' => $this->cookie . '__' . $this->divider])->delete();
     else {
       $count = $db->where(['cookie' => $this->cookie . '__' . $this->divider])->count();
       $data = ['cookie' => $this->cookie . '__' . $this->divider, 'value' => json_encode($this->tmpData), 'expire' => time() + $this->expire];
-      $rs = $count == 0 ? $db->insert($data) : $db->update($data);
+      $count == 0 ? $db->insert($data) : $db->update($data);
     }
-    Db::name('session')->where([['expire', '<', time() - $this->expire]])->delete();
+    Db::connect('ah')->table('session')->where([['expire', '<', time() - $this->expire]])->delete();
   }
 
   public function get($key, $default = null)

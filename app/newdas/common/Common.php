@@ -3,7 +3,7 @@
  * @Author: undercake
  * @Date: 2023-03-04 16:43:31
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-07-31 09:01:23
+ * @LastEditTime: 2023-06-01 06:17:10
  * @FilePath: /ahadmin/app/midas/common/Common.php
  * @Description: 公共类
  */
@@ -33,7 +33,6 @@ class Common extends BaseController
     $do_not_need_login = [
       'user/login',
       'user/logged',
-      'user/test',
       'cap/get',
     ];
     if (!$logged && !in_array($this->controller . '/' . $this->action, $do_not_need_login)) {

@@ -28,7 +28,8 @@
         "topthink/think-view": "^2.0",
         "topthink/think-captcha": "^3.0",
         "overtrue/pinyin": "^5.0",
-        "endroid/qr-code": "^4.8"
+        "endroid/qr-code": "^4.8",
+        "phpoffice/phpspreadsheet": "^1.29"
     },
     "require-dev": {
         "symfony/var-dumper": "^4.2",

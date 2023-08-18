@@ -21,7 +21,6 @@ class My extends Common
     $data = Db::connect('ah_admin')->table('operator')->field('full_name,user_name,mobile,email')->where('id', $this->session_get('id'))->find();
     return $this->succ(['data' => $data]);
   }
-
   public function set()
   {
     $id = $this->session_get('id');
@@ -54,9 +53,5 @@ class My extends Common
     $salt = md5($this->rand_str(11));
     $rs = Db::name('operator')->where('id', $id)->update(['salt' => $salt, 'password' => sha1($data['newpass'] . $salt)]);
     return $this->succ(['rs' => $rs]);
-  }
-
-  function set_wx() {
-    
   }
 }

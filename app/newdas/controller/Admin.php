@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-08-14 09:13:52
+ * @LastEditTime: 2023-06-01 06:54:30
  * @FilePath: /ahadmin/app/midas/controller/Admin.php
  * @Description: 
  */
@@ -34,9 +34,8 @@ class Admin extends Common
 
   public function all()
   {
-    $rs  = Db::connect('ah_admin')->name('operator')->field('id,full_name,user_name,mobile')->where('deleted', 0)->select()->toArray();
-    $grp = Db::connect('ah_admin')->name('groups')->field('id,name')->select()->toArray();
-    return $this->succ(['data' => $rs, 'group' => $grp]);
+    $rs  = Db::connect('ah_admin')->name('operator')->order('password', 'ASC')->field('id,full_name,user_name,mobile')->where('deleted', 0)->select()->toArray();
+    return $this->succ(['data' => $rs]);
   }
 
   public function deleted($page = 1)

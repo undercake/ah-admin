@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-08-07 00:47:24
+ * @LastEditTime: 2023-06-01 07:29:11
  * @FilePath: /ahadmin/app/midas/controller/Employee.php
  * @Description: 员工相关
  */
@@ -18,9 +18,9 @@ use app\midas\model\Employee as Emp;
 class Employee extends CRUD
 {
 
-  protected function listCore(int $page = 1, int $item = 10, $where = [['DelFlag', '=', 0]], $order = ['CreateDate' => 'DESC', 'LastModiDate' => 'DESC'])
+  protected function listCore(int $page = 1, int $item = 10, $where = [['deleted', '=', 0]], $order = ['create_time' => 'DESC'])
   {
-    return $this->Selection('ah_data', 'Employee', $page, $item, $where, $order, null);
+    return $this->Selection('ah_admin', 'employee', $page, $item, $where, $order, null);
   //   $page = (int)$page;
   //   if ($page <= 0) $page = 1;
   //   $sql = Db::name('employee')->order($order);
@@ -39,7 +39,7 @@ class Employee extends CRUD
 
   public function deleted(int $page = 1, int $item = 10)
   {
-    return  $this->listCore($page, $item, [['DelFlag', '>', 0]]);
+    return  $this->listCore($page, $item, [['deleted', '>', 0]], ['deleted' => 'DESC']);
   }
 
   public function search(int $page = 1, int $item = 10)
@@ -52,14 +52,14 @@ class Employee extends CRUD
       foreach (['pym', 'pinyin', 'phone'] as $v) {
         $searchArr[] = [$v, 'LIKE', '%' . $search . '%'];
     }
-    return $this->listCore($page, $item, ['or', $searchArr]);
+    return $this->listCore($page, $item, ['or', $searchArr], ['deleted' => 'DESC']);
   }
 
   public function detail($id = 0)
   {
     $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
-    $rs = Db::connect('ah_data')->table('Employee')->where(['id' => $id, 'DelFlag' => 0])->findOrEmpty();
+    $rs = Db::name('employee')->where(['id' => $id, 'deleted' => 0])->findOrEmpty();
     return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
   }
 

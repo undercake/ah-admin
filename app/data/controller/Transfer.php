@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-04-11 08:38:29
+ * @LastEditTime: 2023-04-18 17:12:42
  * @FilePath: /ahadmin/app/data/controller/Transfer.php
  * @Description: 转移数据
  */
@@ -37,6 +37,8 @@ class Transfer
    */
   public function index($tb)
   {
+    ini_set('memory_limit', '5G');
+    set_time_limit(0);
     switch ($tb) {
       case 'clientInfo':
         return;
@@ -118,9 +120,6 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
 
   private function c2cHandler()
   {
-    ini_set('memory_limit', '5G');
-    set_time_limit(0);
-
     try {
       return $this->client2customer();
     } catch (\Throwable $th) {
@@ -226,31 +225,6 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
       }
       unset($mobile_new);
       $_ENV['total']++;
-      /*   customer
-      id	int(10)		UNSIGNED	否	无
-	2	name	varchar(70)	utf8mb4_bin		否	无
-	3	mobile	varchar(80)	utf8mb4_general_ci		否		英文,分开
-	4	black	tinyint(1)			否	0
-	5	pym	varchar(35)	utf8mb4_general_ci		否
-	6	pinyin	varchar(280)	utf8mb4_bin		否
-	7	del	tinyint(1)			否	0
-	8	create_time	datetime
-	9	last_modify	datetime
-	10	remark
-      addr
-  	id	address	customer_id	area
-
-    customer_serv
-	id 主键	int(10)		UNSIGNED	否	无		AUTO_INCREMEN
-	2	customer_id	int(10)		UNSIGNED	否	0
-	3	create_time	datetime
-	4	stat_time	datetime
-	5	end_time	datetime
-	6	type	tinyint(1)			否	0	7半月卡6月卡5季卡4年卡3包做2包周1钟点0暂无
-	7	deleted	bigint(12)			否	0
-	8	contract_id	int(10)		UNSIGNED	否	0
-	9	remark	v
-       */
     };
     return json_encode($_ENV);
   }
@@ -271,10 +245,17 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
       }
       $ah_admin->insertAll($new_data);
       $_ENV['count'] += count($data);
-      echo (count($data) < 100 ? ('<br>' . $_ENV['count']) : '.');
     });
+    return json_encode($_ENV);
   }
 
+  /**
+  * @description: $data[原字段名的值] = 新字段名的值
+  * @param string $key 原字段名
+  * @param string $dataKey 新字段名
+  * @param \think\Collection $data
+  * @return Array
+  */
   private function flowData(String $key, String $dataKey, \think\Collection $data)
   {
     $tmpData = [];
@@ -359,7 +340,7 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
   {
     $Operator     = $this->flowData('OperatorOID',     'id', Db::connect('ah_data')->table('Operator')->select());
     $BranchOffice = $this->flowData('BranchOfficeOID', 'id', Db::connect('ah_data')->table('BranchOffice')->select());
-    $this->transfer_core('TaskInfo', 'task_info', function ($d) use ($Operator, $BranchOffice) {
+    return $this->transfer_core('TaskInfo', 'task_info', function ($d) use ($Operator, $BranchOffice) {
       $client = Db::connect('ah_data')->table('ClientInfo')->field('id')->where('ClientInfoOID', $d['ClientInfoOID'])->find();
       return [
         'id'               => $d['id'],
@@ -378,24 +359,52 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
   }
   private function trans_TaskDoDetail()
   {
-    return;
-    $Operator     = $this->flowData('OperatorOID',     'id', Db::connect('ah_data')->table('Operator')->select());
-    $BranchOffice = $this->flowData('BranchOfficeOID', 'id', Db::connect('ah_data')->table('BranchOffice')->select());
-    $this->transfer_core('TaskInfo', 'task_info', function ($d) use ($Operator, $BranchOffice) {
-      $c = Db::connect('ah_data')->table('ClientInfo')->field('id')->where('TaskInfoOID', $d['TaskInfoOID'])->whereTime(['PhoneDate', '>', '2021-1-1'])->find();
-      if (count($c) < 1) return null;
+    $tmpArr = [
+      null => 0,
+      ''   => 0,
+      'A'  => 1,
+      'B'  => 2,
+      'C'  => 3,
+      'D'  => 4
+    ];
+    $status = [
+      1   => 0,
+      200 => 1,
+      300 => 2
+    ];
+    $this->transfer_core('taskDoDetail', 'task_do_detail', function ($d) use ($tmpArr, $status) {
+      $infoId = Db::connect('ah_data')->table('TaskInfo')->field('id')->where('TaskInfoOID', $d['TaskInfoOID'])->find()['id'];
+      $emp = Db::connect('ah_data')->table('Employee')->field('FullName,EmployeeOID')->where('EmployeeOID', 'IN', implode(',', [$d['Leader'] ?? '',$d['Receiver'] ?? '',$d['Bester'] ?? '']))->select()->toArray();
+      $empName = [];
+      foreach ($emp as $v) {
+        $empName[$v['EmployeeOID']] = $v['FullName'];
+      }
       return [
-        'id'               => $d['id'],
-        'operator_id'      => $Operator[$d['OperatorOID']] ?? 0,
-        'client_id'        => $c['id'] ?? 0,
-        'branch_office_id' => $BranchOffice[$d['BranchOfficeOID']] ?? 0,
-        'service_name'     => $d['ServiceContentName'],
-        'service_time'     => $d['NeedServiceTime'],
-        'comment'          => $d['Comment'],
-        'contact_time'     => $d['PhoneDate'],
-        'phone_flag'       => $d['PhoneFlag'],
-        'task_status'      => $d['TaskStatus'],
-        'del'              => 0
+        'id'               => $d['id'],                                                          //
+        'taskinfo_id'      => $infoId,                                                           //--id
+        'client_contract'  => $d['ClientInfo_ItemCode'],                                         //
+        'service_time1'    => $d['ServiceTime1'],                                                //
+        'service_time2'    => $d['ServiceTime2'],                                                //
+        'service_fee'      => $d['ServiceFee'],                                                  //
+        'work_our'         => $d['WorkHour'],                                                    //
+        'charge_money'     => $d['ChargeMoney'],                                                 //
+        'now_money'        => $d['NowMoney'],                                                    //
+        'f_cash'           => $d['FCash'],                                                       //
+        'charge_count'     => $d['ChargeCount'],                                                 //
+        'now_count'        => $d['NowCount'],                                                    //
+        'service_quantity' => $tmpArr[$d['ServiceQuantity']],                                    //  0:空或NULL，1A2B3C4D
+        'next_time_need'   => $tmpArr[$d['NextTimeNeed']],                                       //  0:空或NULL，1A2B3C4D
+        'deserve_pay'      => $tmpArr[$d['DeservePay']],                                         //  0:空或NULL，1A2B3C4D
+        'info_come'        => $tmpArr[$d['InfoCome']],                                           //  0:空或NULL，1A2B3C4D
+        'leader'           => isset($empName[$d['Leader']]) ? $empName[$d['Leader']] : '',       //  oid --- 名字
+        'reciver'          => isset($empName[$d['Receiver']]) ? $empName[$d['Receiver']] : '',   //  oid --- 名字
+        'bestrer'          => isset($empName[$d['Bester']]) ? $empName[$d['Bester']] : '',       //  oid --- 名字
+        'service_name'     => $d['ServiceName'] ?? '',                                           //
+        'sc_name'          => $d['SCName'] ?? '',                                                //
+        'arrange_date'     => $d['ArrangeDate'],                                                 //
+        'status'           => $status[$d['DoStatus']],                                           //  1 -- 0， 200 -- 1 ， 300 -- 2
+        'back'             => $d['BackFlag'],                                                    //
+        'feedback_date'    => $d['FeedbackDate'] ?? '0000-00-00 00:00:00'                                      //
       ];
     });
   }
@@ -617,4 +626,5 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
       ];
     });
   }
+
 }
