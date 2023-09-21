@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-08-15 02:23:58
+ * @LastEditTime: 2023-09-15 09:31:27
  * @FilePath: /ahadmin/app/midas/controller/Customer.php
  * @Description: 客户相关
  */
@@ -77,35 +77,42 @@ class Customer extends CRUD
     //   ['EndDate' => 'ASC']
     // );
 
-    $contract_user = Db::connect('ah_data')
-            ->table('ClientInfo')
-            ->order(['CreateDate' => 'DESC'])
-            ->where([
-                ['DelFlag', '=', 0],
-                ['EndDate', '>', '2023-08-01'],
-                ['EndDate', '<', '2100-01-01'],
-                ['UserType', '>', 1]
-              ])
-            ->field('Tel1,Tel2,Tel3')
-            // ->whereBetweenTime('CreateDate', '2021-01-01', date('Y-m-d', time()))
-            ->select()->toArray();
-            // ->fetchSql(true)->select();
-            // var_dump($sql);
-    $contract_phone = [];
-    foreach ($contract_user as $value) {
-      $contract_phone[] = $value['Tel1'];
-      $contract_phone[] = $value['Tel2'];
-      $contract_phone[] = $value['Tel3'];
+    // $contract_user = Db::connect('ah_data')
+    //         ->table('ClientInfo')
+    //         ->order(['CreateDate' => 'DESC'])
+    //         ->where([
+    //             ['DelFlag', '=', 0],
+    //             ['EndDate', '>', '2023-08-01'],
+    //             ['EndDate', '<', '2100-01-01'],
+    //             ['UserType', '>', 1]
+    //           ])
+    //         ->field('Tel1,Tel2,Tel3')
+    //         // ->whereBetweenTime('CreateDate', '2021-01-01', date('Y-m-d', time()))
+    //         ->select()->toArray();
+    //         // ->fetchSql(true)->select();
+    //         // var_dump($sql);
+    // $contract_phone = [];
+    // foreach ($contract_user as $value) {
+    //   $contract_phone[] = $value['Tel1'];
+    //   $contract_phone[] = $value['Tel2'];
+    //   $contract_phone[] = $value['Tel3'];
+    // }
+    $other_phone = [13888164897,18313936133,18687162073,13330490112,15877983293,13608867766,13888645662,13577038501,13700693033,13698759558,13708455072,13808732568,13888574055,13658843339,65171883,13769179376,13888336661];
+    $where = [];
+    foreach($other_phone as $v) {
+      $where[] = ['Tel1', 'LIKE', '%' . $v . '%'];
+      $where[] = ['Tel2', 'LIKE', '%' . $v . '%'];
+      $where[] = ['Tel3', 'LIKE', '%' . $v . '%'];
     }
     $sql = Db::connect('ah_data')
             ->table('ClientInfo')
-            ->order(['CreateDate' => 'DESC'])
+            // ->whereOr($where)
             ->where([
                 ['DelFlag', '=', 0],
                 ['UserType', '<=', 1],
-                ['Tel1', 'NOT IN', $contract_phone],
-                ['Tel2', 'NOT IN', $contract_phone],
-                ['Tel3', 'NOT IN', $contract_phone],
+                // ['Tel1', 'NOT IN', $contract_phone],
+                // ['Tel2', 'NOT IN', $contract_phone],
+                // ['Tel3', 'NOT IN', $contract_phone],
                 ['Address', 'NOT LIKE', '%不知%'],
                 ['FullName', '<>', '员工'],
                 ['FullName', 'NOT LIKE', '%不知%'],
@@ -137,16 +144,17 @@ class Customer extends CRUD
                 ['FullName', 'NOT LIKE', '%邓如玲 员工%'],
                 ['FullName', 'NOT LIKE', '%毕惠仙%']
               ])
-            ->whereBetweenTime('CreateDate', '2017-01-01', date('Y-m-d', time()))
+            // ->whereBetweenTime('CreateDate', '2010-01-01', date('Y-m-d', time()))
+            ->order('CreateDate', 'DESC')
             ->page($page, $item);
             // ->fetchSql(true)->select();
             // var_dump($sql);
     $rs = $sql->select()->toArray();
 
-        return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
+    return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
 
   }
-
+// 搜索
   public function search(int $page = 1, int $item = 10)
   {
     $searchStr = Request::post()['search'];
@@ -189,7 +197,7 @@ class Customer extends CRUD
     //   ]
     // );
   }
-
+// 过期合同户
   public function past(int $page = 1, int $item = 10)
   {
     /*
@@ -286,7 +294,7 @@ class Customer extends CRUD
 
       return $this->succ(['data' => $rs, 'current_page' => $page,'total' => $sql->count(), 'count' => $rs->count(), 'count_per_page' => 20]);
   }
-
+// 回收站
   public function deleted(int $page = 1, int $item = 10)
   {
     if ($page <= 0) $page = 1;
@@ -296,7 +304,7 @@ class Customer extends CRUD
     $rs  = $sql->page($page, $item)->select()->toArray();
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
   }
-// 贾培培
+
   private function insCore()
   {
     $is_post = Request::isPost();
@@ -461,4 +469,13 @@ class Customer extends CRUD
   //   $rs = Db::name('customer_serv')->where('customer_id', $id)->select();
   //   return $this->succ(['data' => $rs]);
   // }
+
+  public function get_map()
+  {
+    $post = Request::post('addr');
+    $url = 'https://apis.map.qq.com/ws/place/v1/suggestion?key=DMGBZ-6GSKU-TTHVU-B54EM-QVHZJ-VUFNZ&region=昆明&keyword=' . $post;
+    // $headerArray = array("Content-type:application/json;charset='utf-8'", "Accept:application/json");
+    $output = $this->get_curl_data($url);
+    return json(json_decode($output, true));
+  }
 }

@@ -2,12 +2,28 @@
 /*
  * @Author: Undercake
  * @Date: 2023-08-18 01:49:25
- * @LastEditTime: 2023-08-18 02:01:28
+ * @LastEditTime: 2023-08-19 02:18:44
  * @FilePath: /ahadmin/app/autorun/common/ParseCronTab.php
  * @Description: 
  */
 
 namespace app\autorun\common;
+/**
+ * @file: Crontab.php
+ * @author: yuyunhe@zuoyebang.com
+ * @date: 2020/7/15 17:30
+ */
+
+//crontab 时间格式:
+//
+//配置   说明
+//“* * * * * *”    分 时 日 月 周
+//“0 3 * * * *”    数字精确配置, 星号为任意.(每天凌晨3点整)
+//“15,30 3 * * *”  逗号表示枚举 (每天3点15分和3点30分)
+//“15-30 3 * * *”  短线表示范围 (每天的3点15分到30分)
+//“*/10 3 * * *”   斜杠表示间隔 (每天3点0分到30分之间, 每10分钟一次)
+//“0-10,50-59/2 3 * * *”   优先级:枚举>范围>间隔 (每天3点0分到10分以及50到59分期间, 每2分钟一次)
+//注意：不支持解析以英文名称配置的时间计划(如:”0 4 1 jan “)
 
 class ParseCronTab
 {

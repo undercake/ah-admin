@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-08-15 03:31:35
- * @LastEditTime: 2023-08-18 09:18:19
+ * @LastEditTime: 2023-09-11 02:11:24
  * @FilePath: /ahadmin/app/autorun/controller/Bots.php
  * @Description: 
  */
@@ -12,11 +12,12 @@ namespace app\autorun\controller;
 use app\autorun\common\Base;
 use app\autorun\common\BaseRun;
 use app\midas\common\MemberInfo;
-use app\midas\common\WX;
+use app\common\WX;
+use think\facade\Cache;
 use think\facade\Db;
 
 // class Bots extends Base
-class Bots extends BaseRun
+class Bots extends Base
 {
     private function get_curl_data($url, $data = null)
     {
@@ -37,17 +38,38 @@ class Bots extends BaseRun
     // 企业微信机器人 获取流水
     public function fin()
     {
+        $has = Cache::get('fin_daily_executed', 0);
+        if ($has == 1) return '今天执行过了';
         $fund_token = WX::token('fund');
         $date = date('Y-m-d', strtotime('-1day'));
-        // $date = '2023-08-15';
+        // $date = '2023-08-30';
 
         $billUrl = 'https://qyapi.weixin.qq.com/cgi-bin/externalpay/get_fund_flow?access_token=' . $fund_token;
-        $output = json_decode($this->get_curl_data($billUrl, json_encode([
-            'begin_time' => strtotime($date . ' 00:00:00'),
-            'end_time'   => strtotime($date . ' 23:59:59'),
-        ])), true);
 
-        $token = WX::token();
+        $output = null;
+        for ($i=0; $i < 5; $i++) {
+            sleep(8);
+            $output = json_decode($this->get_curl_data($billUrl, json_encode([
+                'begin_time' => strtotime($date . ' 00:00:00'),
+                'end_time'   => strtotime($date . ' 23:59:59'),
+            ])), true);
+            if (!is_null($output)) break;
+        }
+
+        $userIds = [];
+        if (!isset($output['fund_flow_list']) || is_null($output['fund_flow_list']) || empty($output['fund_flow_list']))
+            return json(['无可奉告！', $output, $fund_token]);
+
+        foreach ($output['fund_flow_list'] as $v)
+            if(!is_null($v) && isset($v['operator_userid']) && !is_null($v['operator_userid']))$userIds[] = $v['operator_userid'];
+
+        $info = (new MemberInfo())->getList($userIds);
+
+        // $token = WX::token();
+        $userIds = [];
+        foreach($info as $v) {
+            $userIds[$v['userid']] = $v['name'];
+        }
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $worksheet = $spreadsheet->getActiveSheet();
@@ -58,16 +80,6 @@ class Bots extends BaseRun
         $worksheet->setCellValue('E1', '操作人');
         $worksheet->setCellValue('F1', '操作后余额');
         $worksheet->setCellValue('G1', '备注');
-
-        $userIds = [];
-        foreach ($output['fund_flow_list'] as $v) if(isset($v['operator_userid']) && !is_null($v['operator_userid']))$userIds[] = $v['operator_userid'];
-
-        $info = (new MemberInfo())->getList($userIds);
-
-        $userIds = [];
-        foreach($info as $v) {
-            $userIds[$v['userid']] = $v['name'];
-        }
 
         foreach ($output['fund_flow_list'] as $k => $v) {
             $richText = new \PhpOffice\PhpSpreadsheet\RichText\RichText();
@@ -115,7 +127,7 @@ class Bots extends BaseRun
         $bot_url = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=381b427e-f7f9-4f6d-9bdd-23a192a954f8';
         $rss = $this->get_curl_data($bot_url, json_encode(['msgtype' => 'file', 'file' => ['media_id' => $rs['media_id']]]));
 
-
+        Cache::set('fin_daily_executed', 1, 43200);
         return json([$rs['media_id'], $rss]);
         // return download(root_path() . '/temp/' . $date . '.xlsx', $date . '.xlsx');
     }
@@ -123,14 +135,15 @@ class Bots extends BaseRun
     // 收款通知机器人
     function fund_massager() {
         $time = time();
+        $last_time = Cache::get('fund_massager_last_time', $time - 3660);
         $token = WX::token();
         $bot_url = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=1c1ae47c-6ccf-4b52-8bba-ee6c0b0d5211';
         $url = 'https://qyapi.weixin.qq.com/cgi-bin/externalpay/get_bill_list?access_token=' . $token;
         $rs = json_decode($this->get_curl_data($url, json_encode([
-            'begin_time' => $time - 60,
+            'begin_time' => $last_time,
             'end_time' => $time,
         ])), true);
-        if (empty($rs['bill_list'])) return '00';
+        if (empty($rs['bill_list'])) return json(['无可奉告！', $rs, $last_time]);
         $user_ids = [];
         foreach ($rs['bill_list'] as $v) {
             $user_ids[] = $v['payee_userid'];
@@ -141,17 +154,22 @@ class Bots extends BaseRun
             $user_ids[$v['userid']] = $v['name'];
         }
         $msg = '';
+        $last_time = 0;
         foreach ($rs['bill_list'] as $v) {
-            $msg .= ['收款', '退款'][$v['bill_type']] . '通知：' . date('Y-m-d H:i:s', $v['pay_time']) . ' ' . $user_ids[$v['payee_userid']] . ['收款', '退款'][$v['bill_type']] .'：'. $v['total_fee'] / 100 . '元' . "\n";
+            $v['pay_time'] > $last_time && $last_time = $v['pay_time'];
+            $msg .= ['收款', '退款'][$v['bill_type']] . '通知：' . date('Y-m-d H:i:s', $v['pay_time']) . ' ' . $user_ids[$v['payee_userid']] . ' ' . ['收款', '退款'][$v['bill_type']] .'：'. $v['total_fee'] / 100 . '元' . "\n";
         }
+        $at_arr = array_keys($user_ids);
+        array_push($at_arr, 'FangYanKanShiJie', 'Yu7', 'AHuiJiaZhengZhu18183811470');
         $data = json_encode([
             'msgtype' => 'text',
             'text' => [
                 'content' => $msg,
-                'mentioned_list' => array_keys($user_ids),
+                'mentioned_list' => $at_arr,
             ]
         ]);
         $rss = $this->get_curl_data($bot_url, $data);
-        return json([$token, $rss]);
+        Cache::set('fund_massager_last_time', $last_time + 1, 3660);
+        return json([$rss, $at_arr]);
     }
 }

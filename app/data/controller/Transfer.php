@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-12 10:28:14
- * @LastEditTime: 2023-04-18 17:12:42
+ * @LastEditTime: 2023-08-26 07:35:25
  * @FilePath: /ahadmin/app/data/controller/Transfer.php
  * @Description: 转移数据
  */
@@ -45,8 +45,8 @@ class Transfer
         $this->transfer_clientInfo();
         break;
       case 'operator':
-        return json([]);
-        $this->transfer_operator();
+        json([]);
+        return $this->transfer_operator();
         break;
       case 'employee':
         return json([]);
@@ -295,10 +295,11 @@ UPDATE `client_info` SET `transfered`=0 WHERE 1;
   private function transfer_operator()
   {
     $this->transfer_core('Operator', 'operator', function ($d) {
+      $salt = md5($d['OperatorOID'] . $d['OPCode']);
       return [
         'full_name'  => $d['FullName'] ?? '',
-        'password'   => sha1(md5($d['Password']) . md5($d['OperatorOID'] . $d['OPCode'])),
-        'salt'       => md5($d['OperatorOID'] . $d['OPCode']),
+        'password'   => sha1(md5($d['Password']) . $salt),
+        'salt'       => $salt,
         'user_group' => $d['SystemFlag'] == 0 ? 1 : 2,
         'user_name'  => Pinyin::abbr($d['FullName'], 'none')->join(''),
         'mobile'     => ''

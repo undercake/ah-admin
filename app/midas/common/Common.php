@@ -3,7 +3,7 @@
  * @Author: undercake
  * @Date: 2023-03-04 16:43:31
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-07-31 09:01:23
+ * @LastEditTime: 2023-09-03 06:25:27
  * @FilePath: /ahadmin/app/midas/common/Common.php
  * @Description: 公共类
  */
@@ -28,27 +28,41 @@ class Common extends BaseController
     $this->controller = Request::controller(true);
     $this->action = Request::action(true);
     $this->ip = $_SERVER['HTTP_X_REAL_IP'];
-    $logged = $this->is_logged_in();
-    // 未登录
+    $this->shall_pass();
+  }
+
+  private function shall_pass() {
     $do_not_need_login = [
+      'user/wx_before_login_redirect',
+      'user/wx_after_login_redirect',
+      'user/is_wx_scanned',
+      'user/is_wx_loggedin',
+      'user/wx_redirect',
+      'user/wx_login',
       'user/login',
       'user/logged',
       'user/test',
       'cap/get',
     ];
-    if (!$logged && !in_array($this->controller . '/' . $this->action, $do_not_need_login)) {
-      die(json_encode(['code' => -2, 'is_login' => false, 'message' => '您尚未登录，请登录后再试！']));
-    }
-    $rights = $this->session_get('rights');
+
     $controllers_do_not_need_right = [
       'my',
       'user'
     ];
-    if (
-      $logged &&
-      !in_array($this->controller, $controllers_do_not_need_right) &&
-      !in_array('/' . $this->controller . '/' . $this->action, $rights)
-    ) {
+
+    if (in_array($this->controller . '/' . $this->action, $do_not_need_login) ) {
+      return true;
+    }
+
+    $logged = $this->is_logged_in();
+    if (!$logged) {
+      die(json_encode(['code' => -2, 'is_login' => false, 'message' => '您尚未登录，请登录后再试！']));
+    } else if(in_array($this->controller, $controllers_do_not_need_right)) {
+      return true;
+    }
+
+    $rights = $this->session_get('rights');
+    if (!in_array('/' . $this->controller . '/' . $this->action, $rights))
       die(json_encode([
         'code'       => -3,
         'has_rights' => false,
@@ -56,12 +70,11 @@ class Common extends BaseController
         'path'       => $this->controller . '/' . $this->action,
         'ip'         => $this->ip
       ]));
-    }
   }
 
-  protected function sys_log(Int $type, String $log)
+  protected function is_logged_in()
   {
-    //0登录 1退出 2新增 3删除 4修改 5彻底删除
+    return $this->session_get('is_login', false);
   }
 
   private function has_rights()
@@ -94,11 +107,6 @@ class Common extends BaseController
     return $this->sess->clear();
   }
 
-  protected function is_logged_in()
-  {
-    return $this->session_get('is_login', false);
-  }
-
   protected function err($data)
   {
     return json(['code' => -1, ...$data]);
@@ -112,5 +120,21 @@ class Common extends BaseController
   protected function rand_str($len = 5, $chars = '2345678abcdefhijkmnpqrstuvwxyzABCDEFGHJKLMNPQRTUVWXY')
   {
     return substr(str_shuffle($chars), 0, $len);
+  }
+
+  protected function get_curl_data($url, $data = null)
+  {
+      // $headerArray = array("Content-type:application/json;charset='utf-8'", "Accept:application/json");
+      $curl = curl_init();
+      curl_setopt($curl, CURLOPT_URL, $url);
+      if (!is_null($data)) {
+          curl_setopt($curl, CURLOPT_POST, 1);
+          curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+          // curl_setopt($curl, CURLOPT_HTTPHEADER, $headerArray);
+      }
+      curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+      $output = curl_exec($curl);
+      curl_close($curl);
+      return $output;
   }
 }

@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-23 15:19:56
- * @LastEditTime: 2023-07-31 07:37:25
+ * @LastEditTime: 2023-08-30 06:48:31
  * @FilePath: /ahadmin/app/common/Session.php
  * @Description: session类
  */
@@ -43,6 +43,10 @@ class Session
       $count == 0 ? $db->insert($data) : $db->update($data);
     }
     Db::connect('ah')->table('session')->where([['expire', '<', time() - $this->expire]])->delete();
+  }
+
+  public function key() {
+    return $this->cookie;
   }
 
   public function get($key, $default = null)

@@ -1,6 +1,6 @@
 <?php
 
-namespace app\midas\common;
+namespace app\common;
 class WX
 {
 

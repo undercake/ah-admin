@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-04-03 11:34:10
+ * @LastEditTime: 2023-09-20 03:27:45
  * @FilePath: /ahadmin/app/midas/controller/Group.php
  * @Description: 
  */
@@ -21,14 +21,14 @@ class Group extends Common
   {
     $page = (int)$page;
     if ($page <= 0) $page = 1;
-    $grp = Db::name('groups')->page($page, 10)->select();
-    $count = Db::name('groups')->count();
+    $grp = Db::connect('ah_admin')->name('groups')->page($page, 10)->select();
+    $count = Db::connect('ah_admin')->name('groups')->count();
     return $this->succ(['grp' => $grp, 'current_page' => $page, 'count' => $count, 'count_per_page' => 10]);
   }
 
   public function all()
   {
-    $grp = Db::name('groups')->select();
+    $grp = Db::connect('ah_admin')->name('groups')->select();
     return $this->succ(['grp' => $grp]);
   }
 
@@ -36,7 +36,7 @@ class Group extends Common
   {
     $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
-    $rs = Db::name('groups')->where('id', $id)->find();
+    $rs = Db::connect('ah_admin')->name('groups')->where('id', $id)->find();
     return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
   }
 
@@ -50,7 +50,7 @@ class Group extends Common
     $rs = $grp->check($data);
     if (!$rs) return $this->err(['message' => $grp->getError()]);
 
-    $rs     = Db::name('groups')->insert(['name' => $name, 'rights' => $rights]);
+    $rs     = Db::connect('ah_admin')->name('groups')->insert(['name' => $name, 'rights' => $rights]);
     return $this->succ(['rs' => $rs]);
   }
 
@@ -65,7 +65,7 @@ class Group extends Common
     $rs = $grp->check($data);
     if (!$rs) return $this->err(['message' => $grp->getError()]);
 
-    $rs     = Db::name('groups')->where('id', (int)$id)->update(['name' => $name, 'rights' => $rights]);
+    $rs     = Db::connect('ah_admin')->name('groups')->where('id', (int)$id)->update(['name' => $name, 'rights' => $rights]);
     return $this->succ(['rs' => $rs]);
   }
 
@@ -73,13 +73,13 @@ class Group extends Common
   {
     $id = (int)$id;
     if ($id < 0) return $this->err(['message' => 'bad id']);
-    if (Request::isDelete()) return $this->succ(['rs' => Db::name('groups')->where('id', $id)->update(['deleted' => time()])]);
-    if (Request::isPost()) return $this->succ(['rs' => Db::name('groups')->whereIn('id', implode(',', Request::post(['ids'])))->update(['deleted' => time()])]);
+    if (Request::isDelete()) return $this->succ(['rs' => Db::connect('ah_admin')->name('groups')->where('id', $id)->update(['deleted' => time()])]);
+    if (Request::isPost()) return $this->succ(['rs' => Db::connect('ah_admin')->name('groups')->whereIn('id', implode(',', Request::post(['ids'])))->update(['deleted' => time()])]);
   }
 
   public function rights()
   {
-    $rs = Db::name('rights')->where([['type', '<>', 4]])->select();
+    $rs = Db::connect('ah_admin')->name('rights')->where([['type', '<>', 4]])->select();
     return $this->succ(['data' => $rs]);
   }
 
@@ -87,14 +87,14 @@ class Group extends Common
   public function rights_edit()
   {
     return;
-    $rs = Db::name('rights')->select();
+    $rs = Db::connect('ah_admin')->name('rights')->select();
     return $this->succ(['data' => $rs]);
   }
 
   public function rights_add()
   {
     return;
-    $rs = Db::name('rights')->select();
+    $rs = Db::connect('ah_admin')->name('rights')->select();
     return $this->succ(['data' => $rs]);
   }
 
@@ -103,7 +103,7 @@ class Group extends Common
     return;
     $id = (int)$id;
     if ($id < 0) return $this->err(['message' => 'bad id']);
-    if (Request::isDelete()) return $this->succ(['rs' => Db::name('rights')->where('id', $id)->update(['deleted' => time()])]);
-    if (Request::isPost()) return $this->succ(['rs' => Db::name('rights')->whereIn('id', implode(',', Request::post(['ids'])))->update(['deleted' => time()])]);
+    if (Request::isDelete()) return $this->succ(['rs' => Db::connect('ah_admin')->name('rights')->where('id', $id)->update(['deleted' => time()])]);
+    if (Request::isPost()) return $this->succ(['rs' => Db::connect('ah_admin')->name('rights')->whereIn('id', implode(',', Request::post(['ids'])))->update(['deleted' => time()])]);
   }
 }
