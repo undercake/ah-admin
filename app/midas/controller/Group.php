@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-09-20 03:27:45
+ * @LastEditTime: 2023-10-09 08:22:36
  * @FilePath: /ahadmin/app/midas/controller/Group.php
  * @Description: 
  */
@@ -23,13 +23,13 @@ class Group extends Common
     if ($page <= 0) $page = 1;
     $grp = Db::connect('ah_admin')->name('groups')->page($page, 10)->select();
     $count = Db::connect('ah_admin')->name('groups')->count();
-    return $this->succ(['grp' => $grp, 'current_page' => $page, 'count' => $count, 'count_per_page' => 10]);
+    return $this->succ(['data' => $grp, 'current_page' => $page, 'count' => $count, 'count_per_page' => 10]);
   }
 
   public function all()
   {
     $grp = Db::connect('ah_admin')->name('groups')->select();
-    return $this->succ(['grp' => $grp]);
+    return $this->succ(['data' => $grp]);
   }
 
   public function detail($id = 0)
@@ -37,7 +37,7 @@ class Group extends Common
     $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
     $rs = Db::connect('ah_admin')->name('groups')->where('id', $id)->find();
-    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
+    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['data' => $rs]);
   }
 
   public function add()

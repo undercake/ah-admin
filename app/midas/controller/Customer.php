@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-09-15 09:31:27
+ * @LastEditTime: 2023-10-09 05:09:38
  * @FilePath: /ahadmin/app/midas/controller/Customer.php
  * @Description: 客户相关
  */
@@ -12,7 +12,6 @@ namespace app\midas\controller;
 use app\midas\common\CRUD;
 use think\facade\Db;
 use think\facade\Request;
-
 use app\midas\model\Customer as Cus;
 
 class Customer extends CRUD
@@ -97,13 +96,13 @@ class Customer extends CRUD
     //   $contract_phone[] = $value['Tel2'];
     //   $contract_phone[] = $value['Tel3'];
     // }
-    $other_phone = [13888164897,18313936133,18687162073,13330490112,15877983293,13608867766,13888645662,13577038501,13700693033,13698759558,13708455072,13808732568,13888574055,13658843339,65171883,13769179376,13888336661];
-    $where = [];
-    foreach($other_phone as $v) {
-      $where[] = ['Tel1', 'LIKE', '%' . $v . '%'];
-      $where[] = ['Tel2', 'LIKE', '%' . $v . '%'];
-      $where[] = ['Tel3', 'LIKE', '%' . $v . '%'];
-    }
+    // $other_phone = [13888164897,18313936133,18687162073,13330490112,15877983293,13608867766,13888645662,13577038501,13700693033,13698759558,13708455072,13808732568,13888574055,13658843339,65171883,13769179376,13888336661];
+    // $where = [];
+    // foreach($other_phone as $v) {
+    //   $where[] = ['Tel1', 'LIKE', '%' . $v . '%'];
+    //   $where[] = ['Tel2', 'LIKE', '%' . $v . '%'];
+    //   $where[] = ['Tel3', 'LIKE', '%' . $v . '%'];
+    // }
     $sql = Db::connect('ah_data')
             ->table('ClientInfo')
             // ->whereOr($where)
@@ -158,19 +157,24 @@ class Customer extends CRUD
   public function search(int $page = 1, int $item = 10)
   {
     $searchStr = Request::post()['search'];
+    $where = [
+          ['FullName', 'LIKE', '%' . $searchStr . '%'],
+          ['Tel1', 'LIKE', '%' . $searchStr . '%'],
+          ['Tel2', 'LIKE', '%' . $searchStr . '%'],
+          ['Tel3', 'LIKE', '%' . $searchStr . '%'],
+          ['Address', 'LIKE', '%' . $searchStr . '%'],
+          ['pym', 'LIKE', '%' . $searchStr . '%'],
+    ];
+    $rs = array_keys(['暂无', '钟点', '包周', '包做', '年卡', '季卡', '月卡', '半月卡'], $searchStr);
+    if (count($rs) > 0) $where[] = ['UserType', '=', $rs[0]];
+    $rs = array_keys(['普通客户', 'VIP', '重要领导'], $searchStr);
+    if (count($rs) > 0) $where[] = ['F1', '=', $rs[0]];
     return $this->listCore(
       $page,
       $item,
       [
         'or',
-        // ['DelFlag', '=', 0],
-        // ['UserType', '<', 2],
-        [['FullName', 'LIKE', '%' . $searchStr . '%'],
-        ['Tel1', 'LIKE', '%' . $searchStr . '%'],
-        ['Tel2', 'LIKE', '%' . $searchStr . '%'],
-        ['Tel3', 'LIKE', '%' . $searchStr . '%'],
-        ['Address', 'LIKE', '%' . $searchStr . '%'],
-        ['pym', 'LIKE', '%' . $searchStr . '%'],]
+        $where
       ],
       ['EndDate' => 'ASC']
     );
@@ -305,90 +309,104 @@ class Customer extends CRUD
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
   }
 
-  private function insCore()
-  {
-    $is_post = Request::isPost();
-    $post = $is_post ? Request::post() : Request::put();
-    $emp = new Cus;
-    $rs = $emp->check($post);
-    if (!$rs) return $this->err(['message' => $emp->getError(), $emp]);
+  // private function insCore(int $id = 0)
+  // {
+  //   $is_post = Request::isPost();
+  //   $post = $is_post ? Request::post() : Request::put();
+  //   $emp = new Cus;
+  //   $rs = $emp->check($post);
+  //   if (!$rs) return $this->err(['message' => $emp->getError(), $emp]);
 
-    $sideArr = ['address' => [], 'contract' => []];
-    foreach ($sideArr as $k => $v) {
-      $m = $this->checkData($k, $post[$k]);
-      if ($m !== true) return $this->err(['message' => $m]);
-      $sideArr[$k] = $post[$k];
-    }
-    $sideArr['contract_del'] = $post['contract_del'];
-    $sideArr['address_del'] = $post['address_del'];
-    $id = (int)$post['id'];
+  //   $sideArr = ['address' => [], 'contract' => []];
+  //   foreach ($sideArr as $k => $v) {
+  //     $m = $this->checkData($k, $post[$k]);
+  //     if ($m !== true) return $this->err(['message' => $m]);
+  //     $sideArr[$k] = $post[$k];
+  //   }
+  //   $sideArr['contract_del'] = $post['contract_del'];
+  //   $sideArr['address_del'] = $post['address_del'];
+  //   $id = (int)$post['id'];
+  //   $data = [];
+  //   foreach (['name', 'mobile', 'black', 'pym', 'pinyin', 'remark', 'total_money', 'total_count', 'type'] as $v) {
+  //     $data[$v] = $post[$v];
+  //   }
+  //   $db = Db::name('customer');
+  //   $rs = $is_post ? $db->insertGetId($data) : $db->where('id', $id)->update([...$data, 'LastModiDate' => date('Y-m-d H:i:s')]);
+  //   $side = $this->handleInsertOrUpdate($sideArr, $is_post ? $rs : $id);
+  //   return $this->succ(['rs' => $rs, $side]);
+  // }
+
+  // private function checkData(string $type, array $data)
+  // {
+  //   $emp = new Cus($type);
+  //   $msg = true;
+  //   foreach ($data as $v) {
+  //     $rs = $emp->check($v);
+  //     if (!$rs) return $emp->getError();
+  //   }
+  //   return $msg;
+  // }
+
+  // private function handleInsertOrUpdate(array $data, $altId)
+  // {
+  //   $db_name = [
+  //     'address' => 'customer_addr',
+  //     'contract' => 'customer_serv',
+  //   ];
+
+  //   $new_data = ['customer_addr' => ['update' => [], 'insert' => []], 'customer_serv' => ['update' => [], 'insert' => []]];
+  //   $keys = [
+  //     'address' => [
+  //       'address',
+  //       'area',
+  //       'customer_id',
+  //       'id'
+  //     ],
+  //     'contract' => [
+  //       'contract_code',
+  //       'contract_path',
+  //       'CreateDate',
+  //       'customer_id',
+  //       'end_time',
+  //       'id',
+  //       'remark',
+  //       'start_time',
+  //       'type',
+  //     ],
+  //   ];;
+  //   foreach ($data as $k => $v) {
+  //     foreach ($v as $val) {
+  //       $value = [];
+  //       foreach ($keys[$k] as $key) {
+  //         if ($key == 'id' && $val[$key] != 0 || $key != 'id')
+  //           $value[$key] = $val[$key];
+  //       }
+  //       $new_data[$db_name[$k]][$val['id'] == 0 ? 'insert' : 'update'] = [...$value, 'customer_id' => $altId];
+  //     }
+  //   }
+  //   $rtn = [
+  //     Db::name('customer_addr')->data($new_data['customer_addr']['update'])->pk('id')->update(),
+  //     Db::name('customer_addr')->insertAll($new_data['customer_addr']['insert']),
+  //     Db::name('customer_serv')->data($new_data['customer_serv']['update'])->pk('id')->update(),
+  //     Db::name('customer_serv')->insertAll($new_data['customer_serv']['insert'])
+  //   ];
+  //   trim(implode(',',$data['contract_del'])) == '' ? '' : ($rtn[] = Db::name('customer_addr')->where('id', 'IN', trim(implode(',',$data['contract_del']))));
+  //   trim(implode(',',$data['address_del'])) == '' ? '' : ($rtn[] = Db::name('customer_addr')->where('id', 'IN', trim(implode(',',$data['address_del']))));
+  //   return $rtn;
+  // }
+
+  private function insCore (int $id = 0) {
+    $post = Request::post();
     $data = [];
-    foreach (['name', 'mobile', 'black', 'pym', 'pinyin', 'remark', 'total_money', 'total_count', 'type'] as $v) {
+    foreach (['FullName', 'Tel1', 'Tel2', 'Tel3', 'Address', 'fRegion', 'F1', 'HouseArea', 'NormalServiceTime', 'SpecialNeed'] as $v) {
       $data[$v] = $post[$v];
     }
-    $db = Db::name('customer');
-    $rs = $is_post ? $db->insertGetId($data) : $db->where('id', $id)->update($data);
-    $side = $this->handleInsertOrUpdate($sideArr, $is_post ? $rs : $id);
-    return $this->succ(['rs' => $rs, $side]);
-  }
-
-  private function checkData(string $type, array $data)
-  {
-    $emp = new Cus($type);
-    $msg = true;
-    foreach ($data as $v) {
-      $rs = $emp->check($v);
-      if (!$rs) return $emp->getError();
-    }
-    return $msg;
-  }
-
-  private function handleInsertOrUpdate(array $data, $altId)
-  {
-    $db_name = [
-      'address' => 'customer_addr',
-      'contract' => 'customer_serv',
-    ];
-
-    $new_data = ['customer_addr' => ['update' => [], 'insert' => []], 'customer_serv' => ['update' => [], 'insert' => []]];
-    $keys = [
-      'address' => [
-        'address',
-        'area',
-        'customer_id',
-        'id'
-      ],
-      'contract' => [
-        'contract_code',
-        'contract_path',
-        'CreateDate',
-        'customer_id',
-        'end_time',
-        'id',
-        'remark',
-        'start_time',
-        'type',
-      ],
-    ];;
-    foreach ($data as $k => $v) {
-      foreach ($v as $val) {
-        $value = [];
-        foreach ($keys[$k] as $key) {
-          if ($key == 'id' && $val[$key] != 0 || $key != 'id')
-            $value[$key] = $val[$key];
-        }
-        $new_data[$db_name[$k]][$val['id'] == 0 ? 'insert' : 'update'] = [...$value, 'customer_id' => $altId];
-      }
-    }
-    $rtn = [
-      Db::name('customer_addr')->data($new_data['customer_addr']['update'])->pk('id')->update(),
-      Db::name('customer_addr')->insertAll($new_data['customer_addr']['insert']),
-      Db::name('customer_serv')->data($new_data['customer_serv']['update'])->pk('id')->update(),
-      Db::name('customer_serv')->insertAll($new_data['customer_serv']['insert'])
-    ];
-    trim(implode(',',$data['contract_del'])) == '' ? '' : ($rtn[] = Db::name('customer_addr')->where('id', 'IN', trim(implode(',',$data['contract_del']))));
-    trim(implode(',',$data['address_del'])) == '' ? '' : ($rtn[] = Db::name('customer_addr')->where('id', 'IN', trim(implode(',',$data['address_del']))));
-    return $rtn;
+    $emp = new Cus;
+    $rs = $emp->check($data);
+    if (!$rs) return $this->err(['message' => $emp->getError(), $emp]);
+    $db = Db::connect('ah_data')->table('ClientInfo');
+    $rs = $id === 0 ? $db->insertGetId($data) : $db->where('id', $id)->update($data);
+    return $this->succ(['rs' => $rs]);
   }
 
   public function add()
@@ -396,9 +414,10 @@ class Customer extends CRUD
     return $this->insCore();
   }
 
-  public function alter()
+  public function alter(int $id = 0)
   {
-    return $this->insCore();
+    if ($id <= 0) return $this->err(['message' => 'bad id']);
+    return $this->insCore($id);
   }
 
   public function delete(int $id = 0)

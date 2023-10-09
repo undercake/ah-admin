@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-08-14 09:13:52
+ * @LastEditTime: 2023-10-04 09:26:57
  * @FilePath: /ahadmin/app/midas/controller/Admin.php
  * @Description: 
  */
@@ -56,14 +56,13 @@ class Admin extends Common
     return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => 10]);
   }
 
-  public function detail($id = 0)
+  public function detail(int $id = 0)
   {
     $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
     $rs = Db::connect('ah_admin')->name('operator')->field('id,full_name,user_group,user_name,mobile')->where(['id' => $id, 'deleted' => 0])->find();
-    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
+    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['data' => $rs]);
   }
-
   public function add()
   {
     $data       = Request::put();
@@ -80,7 +79,7 @@ class Admin extends Common
     if (!$res) return $this->err(['message' => $am->getError()]);
 
     try {
-      $rs = Db::connect('ah_admin')->name('operator')->insert(['full_name' => $full_name, 'mobile' => $mobile, 'user_group' => $user_group, 'user_name' => $user_name, 'email' => $email]);
+      $rs = Db::connect('ah_admin')->table('operator')->insert(['full_name' => $full_name, 'mobile' => $mobile, 'user_group' => $user_group, 'user_name' => $user_name, 'email' => $email]);
     } catch (\Throwable $th) {
       $msg = $th->getMessage();
       $pos = strpos('Duplicate', $msg) >= 0;
@@ -89,10 +88,9 @@ class Admin extends Common
     return $this->succ(['rs' => $rs]);
   }
 
-  public function alter()
+  public function alter(int $id)
   {
     $data       = Request::post();
-    $id         = $data['id'];
     $full_name  = $data['full_name'];
     $mobile     = $data['mobile'];
     $user_group = $data['user_group'];
@@ -104,7 +102,13 @@ class Admin extends Common
     $res = $am->check($data);
     if (!$res) return $this->err(['message' => $am->getError()]);
 
-    $rs = Db::connect('ah_admin')->name('operator')->where('id', (int)$id)->update(['full_name' => $full_name, 'mobile' => $mobile, 'user_group' => $user_group, 'user_name' => $user_name, 'email' => $email]);
+    $rs = Db::connect('ah_admin')->table('operator')->where('id', $id)->update([
+      'full_name'  => $full_name,
+      'mobile'     => $mobile,
+      'user_group' => $user_group,
+      'user_name'  => $user_name,
+      'email'      => $email
+    ]);
     return $this->succ(['rs' => $rs]);
   }
 

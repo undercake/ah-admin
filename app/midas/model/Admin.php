@@ -2,16 +2,16 @@
 /*
 * @Author: Undercake
 * @Date: 2023-03-18 11:01:12
- * @LastEditTime: 2023-03-22 14:15:47
- * @FilePath: /tp6/app/midas/model/Admin.php
+ * @LastEditTime: 2023-10-04 07:48:14
+ * @FilePath: /ahadmin/app/midas/model/Admin.php
 * @Description: 管理员数据验证器
 */
 
 namespace app\midas\model;
 
-use think\Validate;
+use app\common\CommonValidate;
 
-class Admin extends Validate
+class Admin extends CommonValidate
 {
   /**
    * 定义验证规则
@@ -42,7 +42,6 @@ class Admin extends Validate
     'user_group.require' => '管理员角色必填',
     'user_group.integer' => '管理员角色只能为整数',
     'email'              => '邮箱格式不正确',
-    'mobile'             => '手机号格式不正确',
-    'id'                 => 'id应为整数!'
+    'mobile'             => '手机号格式不正确'
   ];
 }

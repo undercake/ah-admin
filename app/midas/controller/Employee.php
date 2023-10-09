@@ -2,7 +2,7 @@
 /*
  * @Author: Undercake
  * @Date: 2023-03-16 12:59:48
- * @LastEditTime: 2023-08-07 00:47:24
+ * @LastEditTime: 2023-10-09 02:25:44
  * @FilePath: /ahadmin/app/midas/controller/Employee.php
  * @Description: 员工相关
  */
@@ -21,16 +21,16 @@ class Employee extends CRUD
   protected function listCore(int $page = 1, int $item = 10, $where = [['DelFlag', '=', 0]], $order = ['CreateDate' => 'DESC', 'LastModiDate' => 'DESC'])
   {
     return $this->Selection('ah_data', 'Employee', $page, $item, $where, $order, null);
-  //   $page = (int)$page;
-  //   if ($page <= 0) $page = 1;
-  //   $sql = Db::name('employee')->order($order);
-  //   if ($where[0] == 'or') {
-  //     unset($where[0]);
-  //     $sql = $sql->whereOr($where[1]);
-  //   } else
-  //     $sql = $sql->where($where);
-  //   $rs  = $sql->page($page, $item)->select()->toArray();
-  //   return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
+    //   $page = (int)$page;
+    //   if ($page <= 0) $page = 1;
+    //   $sql = Db::name('employee')->order($order);
+    //   if ($where[0] == 'or') {
+    //     unset($where[0]);
+    //     $sql = $sql->whereOr($where[1]);
+    //   } else
+    //     $sql = $sql->where($where);
+    //   $rs  = $sql->page($page, $item)->select()->toArray();
+    //   return $this->succ(['data' => $rs, 'current_page' => $page, 'count' => $sql->count(), 'count_per_page' => $item]);
   }
   public function list(int $page = 1, int $item = 10)
   {
@@ -48,10 +48,10 @@ class Employee extends CRUD
     if ($search == '') return $this->err(['message' => 'Bad Request!']);
     $searchArr = [];
     $searchArr[] = ['name', 'LIKE', '%' . $search . '%'];
-    if(preg_match('/([\x81-\xfe][\x40-\xfe])/' ,$search) === 0)
+    if (preg_match('/([\x81-\xfe][\x40-\xfe])/', $search) === 0)
       foreach (['pym', 'pinyin', 'phone'] as $v) {
         $searchArr[] = [$v, 'LIKE', '%' . $search . '%'];
-    }
+      }
     return $this->listCore($page, $item, ['or', $searchArr]);
   }
 
@@ -60,52 +60,72 @@ class Employee extends CRUD
     $id = (int)$id;
     if ($id <= 0) return $this->err(['message' => 'bad id', 'id' => $id]);
     $rs = Db::connect('ah_data')->table('Employee')->where(['id' => $id, 'DelFlag' => 0])->findOrEmpty();
-    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['detail' => $rs]);
+    return count($rs) <= 0 ? $this->err(['message' => '没有找到数据']) : $this->succ(['data' => $rs]);
   }
 
   public function add()
   {
-    $data       = Request::put();
-    $full_name  = $data['full_name'];
-    $mobile     = $data['mobile'];
-    $user_name  = $data['user_name'];
-    $email      = $data['email'];
-
+    $post   = Request::post();
+    $data = [];
+    foreach ([
+      'FullName',
+      'Sex',
+      'Address',
+      'Tel',
+      'Birthday',
+      'Workday',
+      'BlameRecord',
+      'Comment',
+      'Department',
+      'HomeTel',
+      'IDCode',
+      'ItemCode',
+      'ItemLevel',
+      'WarrantorTel',
+      'pym'
+    ] as $v) {
+      $data[$v] = $post[$v];
+    }
+    // return json($data);
     $emp = new Emp;
     $rs = $emp->check($data);
     if (!$rs) return $this->err(['message' => $emp->getError()]);
-    $rs = Db::name('employee')->insert(['full_name' => $full_name, 'mobile' => $mobile, 'user_name' => $user_name, 'email' => $email]);
+    $rs = Db::connect('ah_data')->table('Employee')->insert([
+      ...$data,
+      'CreateDate'   => time(),
+      'LastModiDate' => time(),
+    ]);
     return $this->succ(['rs' => $rs]);
   }
 
-  public function alter()
+  public function alter(int $id)
   {
-    $data       = Request::post();
-    $id         = $data['id'];
+    $data   = Request::post();
     $update = [];
-
-    foreach (['address',
-    'avatar',
-    'birth_date',
-    'gender',
-    'grade',
-    'id_code',
-    'intro',
-    'name',
-    'note',
-    'origin',
-    'phone',
-    'pinyin',
-    'pym',
-    'work_date',
-    'workee'] as $v) {
+    foreach ([
+      'FullName',
+      'Sex',
+      'Address',
+      'Tel',
+      'Birthday',
+      'Workday',
+      'BlameRecord',
+      'Comment',
+      'Department',
+      'HomeTel',
+      'IDCode',
+      'ItemCode',
+      'ItemLevel',
+      'WarrantorTel',
+      'pym'
+    ] as $v) {
       $update[$v] = $data[$v];
     }
-
+    // return json($data);
     $emp = new Emp;
-    $rs = $emp->check($data);
+    $rs = $emp->check($update);
     if (!$rs) return $this->err(['message' => $emp->getError()]);
-    $rs = Db::name('employee')->where('id', (int)$id)->update($update);
+    $rs = Db::connect('ah_data')->table('Employee')->where('id', $id)->update([...$update, 'LastModiDate' => date('Y-m-d H:i:s')]);
     return $this->succ(['rs' => $rs]);
   }
 
@@ -114,11 +134,10 @@ class Employee extends CRUD
     $id = (int)$id;
     if ($id < 0) return $this->err(['message' => 'bad id']);
     $is = Request::isDelete();
-    if ($is) return $this->succ(['rs' => Db::name('employee')->where('id', $id)->update(['deleted' => time()])]);
+    if ($is) return $this->succ(['rs' => Db::connect('ah_data')->table('Employee')->where('id', $id)->update(['DelFlag' => time()])]);
     if (Request::isPost()) {
       $data = Request::post();
-
-      return $this->succ(['rs' => Db::name('employee')->whereIn('id', $data['ids'])->update(['deleted' => time()])]);
+      return $this->succ(['rs' => Db::connect('ah_data')->table('Employee')->whereIn('id', $data['ids'])->update(['DelFlag' => time()])]);
     }
   }
 
@@ -140,9 +159,9 @@ class Employee extends CRUD
     $data = Request::post();
     $rs = 0;
     if ($id > 0 || isset($data['ids'])) {
-      $db = Db::name('employee');
+      $db = Db::connect('ah_data')->table('Employee');
       $db = $id > 0 ? $db->where('id', $id) : $db->whereIn('id', $data['ids']);
-      $rs = $db->update(['deleted' => 0]);
+      $rs = $db->update(['DelFlag' => 0]);
     } else return $this->err(['message' => 'Bad Request']);
     return $this->succ(['rs' => $rs]);
   }

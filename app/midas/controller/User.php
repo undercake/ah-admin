@@ -2,7 +2,7 @@
 /*
  * @Author: undercake
  * @Date: 2023-03-04 16:38:59
- * @LastEditTime: 2023-09-07 02:04:57
+ * @LastEditTime: 2023-10-09 03:21:16
  * @FilePath: /ahadmin/app/midas/controller/User.php
  * @Description: 登录类
  */
@@ -23,7 +23,7 @@ class User extends Common
     }
 
     private function change_other_session(string $cookie, $data = []) {
-        $sql = Db::connect('ah')->table('session')->where('cookie', $cookie . '____midas__');
+        $sql = Db::connect('ah')->table('session')->where('cookie', $cookie . '__' . $this->cookie_divider);
 
         $beforeSql = $sql->findOrEmpty();
         if (empty($beforeSql)) return false;
@@ -133,6 +133,7 @@ class User extends Common
         $url = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid='. $corpId . '&redirect_uri=' . $redirect_uri . '&response_type=code&scope=snsapi_privateinfo&state='.$key.'&agentid=1000003#wechat_redirect';
         return redirect($url);
     }
+
     // 微信跳转回来
     public function wx_after_login_redirect(string $code, string $state) {
         $token = WX::token();
@@ -174,20 +175,17 @@ class User extends Common
         }
 
         $rs_sql = $sql->where('userid', $rs['userid'])->field('id')->findOrEmpty();
-        $this->change_other_session($state, ['wx_scanned_id' => $rs_sql['id']]);
-
-        return view();
-    }
-
-    function is_wx_scanned() {
-        $rs = $this->session_get('is_login_wx_scanned', false);
-        return $this->succ(['status' => $rs]);
+        $id = empty($rs_sql) ? 0 : $rs_sql['id'];
+        $this->change_other_session($state, ['wx_scanned_id' => $id]);
+        $rs_wx = Db::connect('ah_admin')->table('operator')->where('wx_id', $id)->findOrEmpty();
+        return view($id === 0 ? 'wx_after_login_error' : (empty($rs_wx) ? 'wx_after_login_error' : ''));
     }
 
     public function is_wx_loggedin()
     {
+        $scanned = $this->session_get('is_login_wx_scanned', false);
         $rs = $this->session_get('wx_scanned_id', false);
-        if ($rs === false) return $this->succ(['logged_in' => false]);
+        if ($rs === false) return $this->succ(['logged_in' => false, 'scanned' => $scanned]);
         $rs_operator = Db::connect('ah_admin')->table('operator')->where('wx_id', $rs)->findOrEmpty();
         if (empty($rs_operator)) {
             return $this->err(['message' => '此微信账号未绑定任何管理员账号！']);
